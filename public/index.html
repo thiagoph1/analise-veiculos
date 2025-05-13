@@ -3,193 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Veículos</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Upload de Planilhas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            text-align: center;
-        }
-        h1 {
-            font-size: 24px;
-            color: #333;
-        }
-        input[type="file"], input[type="date"] {
-            margin: 10px;
-        }
-        button {
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        table {
-            margin: 20px auto;
-            border-collapse: collapse;
-            width: 80%;
-            max-width: 500px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
-        th {
-            background-color: #f0f0f0;
-        }
-        canvas {
-            max-width: 80%;
-            margin: 20px auto;
-        }
-        .error {
-            color: red;
-        }
-        #dateSelect {
-            padding: 8px;
-            width: 200px;
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { max-width: 600px; margin-top: 20px; }
+        select, button, input { margin: 10px 0; }
+        table { border-collapse: collapse; width: 50%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
-    <h1>Análise de Veículos</h1>
-    <div>
-        <h2>Enviar Planilha Diária</h2>
-        <input type="file" id="fileInput" accept=".xlsx">
-        <button onclick="uploadFile()">Enviar</button>
-    </div>
-    <div>
-        <h2>Selecionar Data</h2>
-        <select id="dateSelect">
-            <option value="">Selecione uma data</option>
-        </select>
-        <button onclick="loadReport()">Carregar Relatório</button>
-    </div>
-    <div id="report"></div>
+    <h1>Upload de Planilha de Veículos</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept=".xlsx">
+        <button type="submit">Enviar</button>
+    </form>
+
+    <h2>Relatórios por Data</h2>
+    <select id="dateSelect"></select>
+    <button onclick="loadReport()">Carregar Relatório</button>
+
+    <h2>Relatório</h2>
+    <table id="reportTable">
+        <thead><tr><th>Marca</th><th>Quantidade</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>Gráfico</h2>
     <canvas id="chart"></canvas>
 
     <script>
-        let chartInstance = null;
-
         // Carregar datas disponíveis
-        async function loadDates() {
-            try {
-                const response = await fetch('/dates');
-                const result = await response.json();
-                if (response.ok) {
-                    const dateSelect = document.getElementById('dateSelect');
-                    dateSelect.innerHTML = '<option value="">Selecione uma data</option>';
-                    result.dates.forEach(date => {
-                        const option = document.createElement('option');
-                        option.value = date;
-                        option.text = date;
-                        dateSelect.appendChild(option);
-                    });
-                } else {
-                    document.getElementById('report').innerHTML = `<p class="error">Erro: ${result.error}</p>`;
-                }
-            } catch (error) {
-                document.getElementById('report').innerHTML = `<p class="error">Erro: ${error.message}</p>`;
-            }
-        }
+        fetch('/dates')
+            .then(response => response.json())
+            .then(data => {
+                const dateSelect = document.getElementById('dateSelect');
+                data.dates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    dateSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Erro ao carregar datas:', error));
 
         // Enviar planilha
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileInput');
-            const reportDiv = document.getElementById('report');
-            
-            if (!fileInput.files[0]) {
-                reportDiv.innerHTML = '<p class="error">Selecione um arquivo .xlsx!</p>';
-                return;
-            }
-            
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
             formData.append('file', fileInput.files[0]);
-            
-            try {
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Exibir relatório
-                    let table = '<table><tr><th>Marca</th><th>Quantidade</th></tr>';
-                    for (const [marca, quantidade] of Object.entries(result.report)) {
-                        table += `<tr><td>${marca}</td><td>${quantidade}</td></tr>`;
-                    }
-                    table += '</table>';
-                    reportDiv.innerHTML = table;
-                    
-                    // Renderizar gráfico
-                    renderChart(result.chart);
-                    
-                    // Atualizar lista de datas
-                    loadDates();
-                } else {
-                    reportDiv.innerHTML = `<p class="error">Erro: ${result.error}</p>`;
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
                 }
-            } catch (error) {
-                reportDiv.innerHTML = `<p class="error">Erro: ${error.message}</p>`;
-            }
-        }
+                updateTable(data.report);
+                updateChart(data.chart);
+                updateDateSelect();
+            })
+            .catch(error => {
+                console.error('Erro ao enviar arquivo:', error);
+                alert('Erro ao enviar arquivo');
+            });
+        });
 
         // Carregar relatório por data
-        async function loadReport() {
-            const dateSelect = document.getElementById('dateSelect');
-            const reportDiv = document.getElementById('report');
-            const selectedDate = dateSelect.value;
-            
-            if (!selectedDate) {
-                reportDiv.innerHTML = '<p class="error">Selecione uma data!</p>';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/report/${selectedDate}`);
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Exibir relatório
-                    let table = '<table><tr><th>Marca</th><th>Quantidade</th></tr>';
-                    for (const [marca, quantidade] of Object.entries(result.report)) {
-                        table += `<tr><td>${marca}</td><td>${quantidade}</td></tr>`;
+        function loadReport() {
+            const date = document.getElementById('dateSelect').value;
+            if (!date) return;
+
+            fetch(`/report/${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        return;
                     }
-                    table += '</table>';
-                    reportDiv.innerHTML = table;
-                    
-                    // Renderizar gráfico
-                    renderChart(result.chart);
-                } else {
-                    reportDiv.innerHTML = `<p class="error">Erro: ${result.error}</p>`;
-                }
-            } catch (error) {
-                reportDiv.innerHTML = `<p class="error">Erro: ${error.message}</p>`;
+                    updateTable(data.report);
+                    updateChart(data.chart);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar relatório:', error);
+                    alert('Erro ao carregar relatório');
+                });
+        }
+
+        // Atualizar tabela
+        function updateTable(report) {
+            const tbody = document.querySelector('#reportTable tbody');
+            tbody.innerHTML = '';
+            for (const [marca, quantidade] of Object.entries(report)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${marca}</td><td>${quantidade}</td>`;
+                tbody.appendChild(row);
             }
         }
 
-        // Função para renderizar gráfico
-        function renderChart(chartData) {
+        // Atualizar gráfico
+        let chartInstance = null;
+        function updateChart(chartData) {
             const ctx = document.getElementById('chart').getContext('2d');
-            
-            // Destruir gráfico anterior, se existir
-            if (chartInstance) {
-                chartInstance.destroy();
-            }
-            
+            if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: chartData.labels,
                     datasets: [{
-                        label: 'Veículos por Ano modelo',
+                        label: 'Quantidade por Ano Modelo',
                         data: chartData.values,
-                        backgroundColor: '#007bff',
-                        borderColor: '#0056b3',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -201,8 +133,22 @@
             });
         }
 
-        // Carregar datas ao iniciar
-        window.onload = loadDates;
+        // Atualizar seletor de datas
+        function updateDateSelect() {
+            fetch('/dates')
+                .then(response => response.json())
+                .then(data => {
+                    const dateSelect = document.getElementById('dateSelect');
+                    dateSelect.innerHTML = '';
+                    data.dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = date;
+                        dateSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Erro ao atualizar datas:', error));
+        }
     </script>
 </body>
 </html>
