@@ -22,7 +22,7 @@ def upload_file():
         return jsonify({'error': 'Nenhum arquivo enviado'}), 400
     
     file = request.files['file']
-    if not file.filename.endswith('.xlsx'):
+    if not file.filename or not file.filename.endswith('.xlsx'):
         return jsonify({'error': 'Arquivo deve ser .xlsx'}), 400
     
     try:
