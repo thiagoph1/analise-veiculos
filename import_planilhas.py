@@ -4,7 +4,7 @@ import os
 from glob import glob
 
 # Conectar ao MongoDB Atlas
-mongo_uri = "mongodb+srv://admin:sua_senha@veiculoscluster.mongodb.net/veiculos_db?retryWrites=true&w=majority"
+mongo_uri = "mongodb+srv://dbVeiculos:a315saex@veiculoscluster.2fyqhfr.mongodb.net/?retryWrites=true&w=majority&appName=VeiculosCluster"
 client = pymongo.MongoClient(mongo_uri)
 db = client['veiculos_db']
 
