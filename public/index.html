@@ -39,7 +39,6 @@
         </div>
         <nav class="mt-4">
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('home')">Início</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('upload')">Upload</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
@@ -59,17 +58,8 @@
         <section id="home" class="min-h-screen flex items-center justify-center text-white">
             <div class="text-center bg-black bg-opacity-50 p-8 rounded-lg">
                 <h1 class="text-4xl font-bold mb-4">Bem-vindo à Análise de Veículos</h1>
-                <p class="text-lg">Gerencie e analise dados de viaturas com facilidade.</p>
+                <p class="text-lg">Analise dados de viaturas com relatórios e gráficos detalhados.</p>
             </div>
-        </section>
-
-        <!-- Seção de Upload -->
-        <section id="upload" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Upload de Planilha</h2>
-            <form id="uploadForm" enctype="multipart/form-data" class="bg-white p-6 rounded-lg shadow-md">
-                <input type="file" id="fileInput" name="file" accept=".xlsx" class="mb-4 p-2 border rounded">
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Enviar</button>
-            </form>
         </section>
 
         <!-- Seção de Relatórios -->
@@ -122,7 +112,7 @@
         <section id="about" class="hidden">
             <h2 class="text-2xl font-bold mb-4">Sobre o Projeto</h2>
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel. Faça upload de planilhas diárias e visualize relatórios detalhados e gráficos interativos.</p>
+                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel importadas automaticamente. Visualize relatórios detalhados e gráficos interativos.</p>
                 <p class="mt-4">Desenvolvido com Flask, MongoDB Atlas, e Tailwind CSS.</p>
             </div>
         </section>
@@ -172,35 +162,6 @@
                     alert('Erro ao carregar datas');
                 });
         }
-
-        // Enviar planilha
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData();
-            const fileInput = document.getElementById('fileInput');
-            formData.append('file', fileInput.files[0]);
-
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    alert(data.error);
-                    return;
-                }
-                showSection('reports');
-                updateReportTable(data.report);
-                updateReportChart(data.chart);
-                loadDates('dateSelect');
-                document.getElementById('reportContent').classList.remove('hidden');
-            })
-            .catch(error => {
-                console.error('Erro ao enviar arquivo:', error);
-                alert('Erro ao enviar arquivo');
-            });
-        });
 
         // Carregar relatório
         function loadReport() {
