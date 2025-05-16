@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS  # type: ignore
+from flask_cors import CORS
 import pandas as pd
-from io import BytesIO
+import pymongo
 import logging
 import os
 from datetime import datetime
-import glob
+from io import BytesIO
 
 app = Flask(__name__)
 CORS(app)  # Habilita CORS para todas as rotas
@@ -13,10 +13,10 @@ CORS(app)  # Habilita CORS para todas as rotas
 # Configura logging para depuração
 logging.basicConfig(level=logging.DEBUG)
 
-# Pasta para salvar planilhas
-UPLOAD_FOLDER = 'uploads'
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Conectar ao MongoDB Atlas
+mongo_uri = os.environ.get('MONGO_URI', 'mongodb+srv://dbVeiculos:a315saex@veiculoscluster.2fyqhfr.mongodb.net/?retryWrites=true&w=majority&appName=VeiculosCluster')
+client = pymongo.MongoClient(mongo_uri)
+db = client['veiculos_db']
 
 @app.route('/')
 def serve_index():
@@ -41,19 +41,19 @@ def upload_file():
         return jsonify({'error': 'Arquivo deve ser .xlsx'}), 400
     
     try:
-        # Salvar arquivo
-        today = datetime.now().strftime('%Y-%m-%d')
-        file_path = os.path.join(UPLOAD_FOLDER, f'{today}.xlsx')
+        # Definir coleção para o dia atual
+        today = datetime.now().strftime('%Y_%m_%d')
+        collection_name = f'veiculos_{today}'
+        collection = db[collection_name]
         
-        if os.path.exists(file_path):
+        # Verificar se já existe uma planilha para hoje
+        if collection.count_documents({}) > 0:
             app.logger.error("Planilha já existe para hoje")
             return jsonify({'error': 'Planilha já existe para hoje'}), 400
         
-        file.save(file_path)
-        app.logger.debug(f"Arquivo salvo em {file_path}")
-        
         # Processar planilha
-        data = pd.read_excel(file_path, engine='openpyxl')
+        file_data = file.read()
+        data = pd.read_excel(BytesIO(file_data), engine='openpyxl')
         
         app.logger.debug("Verificando colunas")
         required_columns = ['Marca', 'Ano modelo']
@@ -62,10 +62,16 @@ def upload_file():
             app.logger.error(f"Colunas ausentes: {missing}")
             return jsonify({'error': f"Colunas ausentes: {missing}"}), 400
         
-        # Relatório: contagem de veículos por Marca
+        # Converter planilha para documentos MongoDB
+        documents = data.to_dict('records')
+        if documents:
+            collection.insert_many(documents)
+            app.logger.debug(f"{len(documents)} documentos inseridos em {collection_name}")
+        
+        # Gerar relatório: contagem de veículos por Marca
         report = data.groupby('Marca').size().to_dict()
         
-        # Gráfico: contagem de veículos por Ano modelo
+        # Gerar dados do gráfico: contagem de veículos por Ano modelo
         chart_data = {
             'labels': data['Ano modelo'].value_counts().index.tolist(),
             'values': data['Ano modelo'].value_counts().values.tolist()
@@ -84,8 +90,9 @@ def upload_file():
 def get_dates():
     app.logger.debug("Recebida requisição para /dates")
     try:
-        files = glob.glob(os.path.join(UPLOAD_FOLDER, '*.xlsx'))
-        dates = [os.path.splitext(os.path.basename(f))[0] for f in files]
+        # Listar coleções que começam com 'veiculos_'
+        collections = db.list_collection_names()
+        dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
         dates.sort(reverse=True)
         app.logger.debug(f"Datas disponíveis: {dates}")
         return jsonify({'dates': dates})
@@ -97,13 +104,18 @@ def get_dates():
 def get_report(date):
     app.logger.debug(f"Recebida requisição para /report/{date}")
     
-    file_path = os.path.join(UPLOAD_FOLDER, f'{date}.xlsx')
-    if not os.path.exists(file_path):
-        app.logger.error(f"Planilha não encontrada para {date}")
-        return jsonify({'error': f"Planilha não encontrada para {date}"}), 404
+    collection_name = f'veiculos_{date.replace("-", "_")}'
+    collection = db[collection_name]
     
     try:
-        data = pd.read_excel(file_path, engine='openpyxl')
+        # Buscar todos os documentos da coleção
+        documents = list(collection.find({}))
+        if not documents:
+            app.logger.error(f"Planilha não encontrada para {date}")
+            return jsonify({'error': f"Planilha não encontrada para {date}"}), 404
+        
+        # Converter para DataFrame
+        data = pd.DataFrame(documents)
         
         app.logger.debug("Verificando colunas")
         required_columns = ['Marca', 'Ano modelo']
@@ -112,10 +124,10 @@ def get_report(date):
             app.logger.error(f"Colunas ausentes: {missing}")
             return jsonify({'error': f"Colunas ausentes: {missing}"}), 400
         
-        # Relatório: contagem de veículos por Marca
+        # Gerar relatório: contagem de veículos por Marca
         report = data.groupby('Marca').size().to_dict()
         
-        # Gráfico: contagem de veículos por Ano modelo
+        # Gerar dados do gráfico: contagem de veículos por Ano modelo
         chart_data = {
             'labels': data['Ano modelo'].value_counts().index.tolist(),
             'values': data['Ano modelo'].value_counts().values.tolist()
@@ -127,9 +139,9 @@ def get_report(date):
             'chart': chart_data
         })
     except Exception as e:
-        app.logger.error(f"Erro ao processar arquivo: {str(e)}")
+        app.logger.error(f"Erro ao processar relatório: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))
+    port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port, debug=True)
