@@ -23,7 +23,7 @@ def upload_file():
     
     file = request.files['file']
     if not file.filename or not file.filename.endswith('.xlsx'):
-        return jsonify({'error': 'Arquivo deve be .xlsx'}), 400
+        return jsonify({'error': 'Arquivo deve ser .xlsx'}), 400
     
     try:
         # Ler planilha
@@ -86,6 +86,59 @@ def get_report(date):
         }
         
         return jsonify({'report': report, 'chart': chart_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/report/<date>/tdv', methods=['GET'])
+def get_tdv_report(date):
+    collection_name = f'veiculos_{date.replace("-", "_")}'
+    collection = db[collection_name]
+    
+    if collection_name not in db.list_collection_names():
+        return jsonify({'error': 'Data não encontrada'}), 404
+    
+    try:
+        # Carregar dados
+        data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
+        
+        # Verificar coluna TDV
+        if 'Tdv' not in data.columns:
+            return jsonify({'error': 'Coluna TDV não encontrada'}), 400
+        
+        # Gerar relatório
+        report = data.groupby('Tdv').size().to_dict()
+        chart_data = {
+            'labels': data.groupby('Tdv').size().index.tolist(),
+            'values': data.groupby('Tdv').size().values.tolist()
+        }
+        
+        return jsonify({'report': report, 'chart': chart_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/report/<date>/tdv_unidade', methods=['GET'])
+def get_tdv_unidade_report(date):
+    collection_name = f'veiculos_{date.replace("-", "_")}'
+    collection = db[collection_name]
+    
+    if collection_name not in db.list_collection_names():
+        return jsonify({'error': 'Data não encontrada'}), 404
+    
+    try:
+        # Carregar dados
+        data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
+        
+        # Verificar colunas TDV e Unidade
+        required_columns = ['Tdv', 'Unidade']
+        if not all(col in data.columns for col in required_columns):
+            missing = [col for col in required_columns if col not in data.columns]
+            return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
+        
+        # Gerar relatório
+        report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
+        report_data = report.to_dict('records')  # Lista de {TDV, Unidade, Quantidade}
+        
+        return jsonify({'report': report_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
