@@ -23,7 +23,7 @@ def upload_file():
     
     file = request.files['file']
     if not file.filename or not file.filename.endswith('.xlsx'):
-        return jsonify({'error': 'Arquivo deve ser .xlsx'}), 400
+        return jsonify({'error': 'Arquivo deve be .xlsx'}), 400
     
     try:
         # Ler planilha
@@ -116,4 +116,5 @@ def get_status_patrimonio_chart(date):
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    port = int(os.environ.get('PORT', 8000))
+    app.run(host='0.0.0.0', port=port)
