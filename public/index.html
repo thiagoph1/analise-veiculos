@@ -4,32 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Veículos</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- CSS local gerado pelo Tailwind CLI -->
+    <link href="/styles.css" rel="stylesheet">
     <!-- Chart.js UMD CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-    <style>
-        /* Estilizar fundo da tela inicial */
-        #home {
-            background-image: url('https://images.unsplash.com/photo-1541348263662-e068662d82af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            height: 100vh;
-        }
-        /* Ajustar menu lateral */
-        .sidebar {
-            transition: transform 0.3s ease-in-out;
-        }
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-        }
-    </style>
 </head>
 <body class="bg-gray-100 font-sans">
     <!-- Menu Lateral -->
