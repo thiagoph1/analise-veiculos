@@ -3,152 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Análise de Veículos</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.min.js"></script>
+    <title>Upload de Planilhas</title>
+    <!-- Carregar Chart.js UMD para evitar erro de módulo -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <style>
-        /* Estilizar fundo da tela inicial */
-        #home {
-            background-image: url('https://images.unsplash.com/photo-1541348263662-e068662d82af?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            height: 100vh;
-        }
-        /* Ajustar menu lateral */
-        .sidebar {
-            transition: transform 0.3s ease-in-out;
-        }
-        @media (max-width: 768px) {
-            .sidebar {
-                transform: translateX(-100%);
-            }
-            .sidebar.open {
-                transform: translateX(0);
-            }
-        }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        canvas { max-width: 600px; margin-top: 20px; }
+        select, button, input { margin: 10px 0; }
+        table { border-collapse: collapse; width: 50%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
-    <!-- Menu Lateral -->
-    <div class="fixed inset-y-0 left-0 w-64 bg-blue-900 text-white sidebar z-10" id="sidebar">
-        <div class="p-4">
-            <h1 class="text-2xl font-bold">Análise de Veículos</h1>
-        </div>
-        <nav class="mt-4">
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('home')">Início</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
-        </nav>
-    </div>
+<body>
+    <h1>Upload de Planilha de Veículos</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+        <input type="file" id="fileInput" name="file" accept=".xlsx">
+        <button type="submit">Enviar</button>
+    </form>
 
-    <!-- Botão de Menu para Mobile -->
-    <button class="md:hidden fixed top-4 left-4 z-20 p-2 bg-blue-900 text-white rounded" onclick="toggleSidebar()">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-    </button>
+    <h2>Relatórios por Data</h2>
+    <select id="dateSelect"></select>
+    <button onclick="loadReport()">Carregar Relatório</button>
 
-    <!-- Conteúdo Principal -->
-    <div class="ml-0 md:ml-64 p-6 transition-all">
-        <!-- Tela Inicial -->
-        <section id="home" class="min-h-screen flex items-center justify-center text-white">
-            <div class="text-center bg-black bg-opacity-50 p-8 rounded-lg">
-                <h1 class="text-4xl font-bold mb-4">Bem-vindo à Análise de Veículos</h1>
-                <p class="text-lg">Analise dados de viaturas com relatórios e gráficos detalhados.</p>
-            </div>
-        </section>
+    <h2>Relatório</h2>
+    <table id="reportTable">
+        <thead><tr><th>Marca</th><th>Quantidade</th></tr></thead>
+        <tbody></tbody>
+    </table>
 
-        <!-- Seção de Relatórios -->
-        <section id="reports" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Relatórios por Data</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <select id="reportType" class="p-2 border rounded">
-                        <option value="marcas">Marcas</option>
-                    </select>
-                    <select id="dateSelect" class="p-2 border rounded"></select>
-                    <button onclick="loadReport()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Relatório</button>
-                </div>
-            </div>
-            <div id="reportContent" class="hidden">
-                <h3 class="text-xl font-semibold mb-2">Relatório de Marcas</h3>
-                <table id="reportTable" class="w-full bg-white rounded-lg shadow-md">
-                    <thead>
-                        <tr class="bg-gray-200">
-                            <th class="p-2 text-left">Marca</th>
-                            <th class="p-2 text-left">Quantidade</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-                <h3 class="text-xl font-semibold mt-6 mb-2">Gráfico de Ano Modelo</h3>
-                <canvas id="reportChart" class="max-w-lg"></canvas>
-            </div>
-        </section>
-
-        <!-- Seção de Gráficos -->
-        <section id="charts" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Gráficos por Data</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <select id="chartType" class="p-2 border rounded">
-                        <option value="status_patrimonio">Status Patrimônio</option>
-                    </select>
-                    <select id="chartDateSelect" class="p-2 border rounded"></select>
-                    <button onclick="loadChart()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Gráfico</button>
-                </div>
-            </div>
-            <div id="chartContent" class="hidden">
-                <h3 class="text-xl font-semibold mb-2">Gráfico de Status Patrimônio</h3>
-                <canvas id="statusChart" class="max-w-lg"></canvas>
-            </div>
-        </section>
-
-        <!-- Seção Sobre -->
-        <section id="about" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Sobre o Projeto</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel importadas automaticamente. Visualize relatórios detalhados e gráficos interativos.</p>
-                <p class="mt-4">Desenvolvido com Flask, MongoDB Atlas, e Tailwind CSS.</p>
-            </div>
-        </section>
-    </div>
+    <h2>Gráfico</h2>
+    <canvas id="chart"></canvas>
 
     <script>
-        // Mostrar/Esconder seções
-        function showSection(sectionId) {
-            document.querySelectorAll('section').forEach(section => {
-                section.classList.add('hidden');
-            });
-            document.getElementById(sectionId).classList.remove('hidden');
-            if (window.innerWidth < 768) {
-                toggleSidebar(); // Fechar menu em mobile
-            }
-            if (sectionId === 'reports') {
-                loadDates('dateSelect'); // Carregar datas para relatórios
-                document.getElementById('reportContent').classList.add('hidden');
-            } else if (sectionId === 'charts') {
-                loadDates('chartDateSelect'); // Carregar datas para gráficos
-                document.getElementById('chartContent').classList.add('hidden');
-            }
-        }
-
-        // Alternar menu lateral em mobile
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('open');
-        }
-
         // Carregar datas disponíveis
-        function loadDates(selectId) {
+        fetch('/dates')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Erro ao carregar datas:', data.error);
+                    alert('Erro ao carregar datas: ' + data.error);
+                    return;
+                }
+                const dateSelect = document.getElementById('dateSelect');
+                dateSelect.innerHTML = ''; // Limpar opções existentes
+                data.dates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    dateSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Erro ao carregar datas:', error);
+                alert('Erro ao carregar datas');
+            });
+
+        // Enviar planilha
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+            if (!fileInput.files[0]) {
+                alert('Selecione um arquivo');
+                return;
+            }
+            formData.append('file', fileInput.files[0]);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Erro ao enviar arquivo:', data.error);
+                    alert('Erro ao enviar arquivo: ' + data.error);
+                    return;
+                }
+                updateTable(data.report);
+                updateChart(data.chart);
+                updateDateSelect();
+            })
+            .catch(error => {
+                console.error('Erro ao enviar arquivo:', error);
+                alert('Erro ao enviar arquivo');
+            });
+        });
+
+        // Carregar relatório por data
+        function loadReport() {
+            const date = document.getElementById('dateSelect').value;
+            if (!date) {
+                alert('Selecione uma data');
+                return;
+            }
+
+            fetch(`/report/${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar relatório:', data.error);
+                        alert('Erro ao carregar relatório: ' + data.error);
+                        return;
+                    }
+                    updateTable(data.report);
+                    updateChart(data.chart);
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar relatório:', error);
+                    alert('Erro ao carregar relatório');
+                });
+        }
+
+        // Atualizar tabela
+        function updateTable(report) {
+            const tbody = document.querySelector('#reportTable tbody');
+            tbody.innerHTML = '';
+            if (!report || Object.keys(report).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="2">Nenhum dado disponível</td></tr>';
+                return;
+            }
+            for (const [marca, quantidade] of Object.entries(report)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${marca}</td><td>${quantidade}</td>`;
+                tbody.appendChild(row);
+            }
+        }
+
+        // Atualizar gráfico
+        let chartInstance = null;
+        function updateChart(chartData) {
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (!chartData || !chartData.labels || !chartData.values) {
+                console.error('Dados do gráfico inválidos:', chartData);
+                alert('Erro: Dados do gráfico inválidos');
+                return;
+            }
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Quantidade por Ano Modelo',
+                        data: chartData.values,
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Atualizar seletor de datas
+        function updateDateSelect() {
             fetch('/dates')
                 .then(response => response.json())
                 .then(data => {
-                    const dateSelect = document.getElementById(selectId);
+                    if (data.error) {
+                        console.error('Erro ao atualizar datas:', data.error);
+                        return;
+                    }
+                    const dateSelect = document.getElementById('dateSelect');
                     dateSelect.innerHTML = '';
                     data.dates.forEach(date => {
                         const option = document.createElement('option');
@@ -157,130 +181,8 @@
                         dateSelect.appendChild(option);
                     });
                 })
-                .catch(error => {
-                    console.error('Erro ao carregar datas:', error);
-                    alert('Erro ao carregar datas');
-                });
+                .catch(error => console.error('Erro ao atualizar datas:', error));
         }
-
-        // Carregar relatório
-        function loadReport() {
-            const type = document.getElementById('reportType').value;
-            const date = document.getElementById('dateSelect').value;
-            if (!date) {
-                alert('Selecione uma data');
-                return;
-            }
-
-            if (type === 'marcas') {
-                fetch(`/report/${date}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            alert(data.error);
-                            return;
-                        }
-                        updateReportTable(data.report);
-                        updateReportChart(data.chart);
-                        document.getElementById('reportContent').classList.remove('hidden');
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar relatório:', error);
-                        alert('Erro ao carregar relatório');
-                    });
-            }
-        }
-
-        // Carregar gráfico
-        function loadChart() {
-            const type = document.getElementById('chartType').value;
-            const date = document.getElementById('chartDateSelect').value;
-            if (!date) {
-                alert('Selecione uma data');
-                return;
-            }
-
-            if (type === 'status_patrimonio') {
-                fetch(`/chart/${date}/status_patrimonio`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            alert(data.error);
-                            return;
-                        }
-                        updateStatusChart(data.chart);
-                        document.getElementById('chartContent').classList.remove('hidden');
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar gráfico:', error);
-                        alert('Erro ao carregar gráfico');
-                    });
-            }
-        }
-
-        // Atualizar tabela de relatório
-        function updateReportTable(report) {
-            const tbody = document.querySelector('#reportTable tbody');
-            tbody.innerHTML = '';
-            for (const [marca, quantidade] of Object.entries(report)) {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td class="p-2">${marca}</td><td class="p-2">${quantidade}</td>`;
-                tbody.appendChild(row);
-            }
-        }
-
-        // Atualizar gráfico de relatório (Ano Modelo)
-        let reportChartInstance = null;
-        function updateReportChart(chartData) {
-            const ctx = document.getElementById('reportChart').getContext('2d');
-            if (reportChartInstance) reportChartInstance.destroy();
-            reportChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        label: 'Quantidade por Ano Modelo',
-                        data: chartData.values,
-                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
-                        borderColor: 'rgba(37, 99, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        // Atualizar gráfico de Status Patrimônio
-        let statusChartInstance = null;
-        function updateStatusChart(chartData) {
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            if (statusChartInstance) statusChartInstance.destroy();
-            statusChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: [{
-                        label: 'Quantidade por Status Patrimônio',
-                        data: chartData.values,
-                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
-
-        // Mostrar tela inicial por padrão
-        showSection('home');
     </script>
 </body>
 </html>
