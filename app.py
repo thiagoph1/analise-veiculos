@@ -168,6 +168,54 @@ def get_status_patrimonio_chart(date):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/chart/<date>/disponibilidade', methods=['GET'])
+def get_disponibilidade_chart(date):
+    collection_name = f'veiculos_{date.replace("-", "_")}'
+    collection = db[collection_name]
+    
+    if collection_name not in db.list_collection_names():
+        return jsonify({'error': 'Data não encontrada'}), 404
+    
+    try:
+        # Carregar dados
+        data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
+        
+        # Verificar colunas
+        if 'Unidade' not in data.columns or 'Status Patrimonio' not in data.columns:
+            missing = ['Unidade' if 'Unidade' not in data.columns else '', 'Status Patrimonio' if 'Status Patrimonio' not in data.columns else '']
+            missing = [m for m in missing if m]
+            return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
+        
+        # Categorizar Status Patrimonio
+        disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']
+        indisponiveis = ['A Alienar', 'Em Reparo', 'A Reparar', 'Inativo']
+        
+        # Agrupar por Unidade e calcular quantidades
+        grouped = data.groupby(['Unidade', 'Status Patrimonio']).size().unstack(fill_value=0)
+        chart_data = {
+            'labels': grouped.index.tolist(),  # Unidades
+            'datasets': [
+                {
+                    'label': 'Disponível',
+                    'data': [grouped[status].sum() if status in grouped.columns else 0 for status in disponiveis],
+                    'backgroundColor': 'rgba(37, 99, 235, 0.2)',
+                    'borderColor': 'rgba(37, 99, 235, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Indisponível',
+                    'data': [grouped[status].sum() if status in grouped.columns else 0 for status in indisponiveis],
+                    'backgroundColor': 'rgba(255, 165, 0, 0.2)',
+                    'borderColor': 'rgba(255, 165, 0, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
+        
+        return jsonify({'chart': chart_data})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
     app.run(host='0.0.0.0', port=port)

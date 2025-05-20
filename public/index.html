@@ -19,6 +19,7 @@
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('home')">Início</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('disponibilidade')">Disponibilidade</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
         </nav>
     </div>
@@ -85,6 +86,21 @@
             </div>
         </section>
 
+        <!-- Seção de Disponibilidade -->
+        <section id="disponibilidade" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Disponibilidade por Data</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <select id="disponibilidadeDateSelect" class="p-2 border rounded"></select>
+                    <button onclick="loadDisponibilidade()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Disponibilidade</button>
+                </div>
+            </div>
+            <div id="disponibilidadeContent" class="hidden">
+                <h3 class="text-xl font-semibold mb-2">Disponibilidade da Frota</h3>
+                <canvas id="disponibilidadeChart" class="max-w-lg"></canvas>
+            </div>
+        </section>
+
         <!-- Seção Sobre -->
         <section id="about" class="hidden">
             <h2 class="text-2xl font-bold mb-4">Sobre o Projeto</h2>
@@ -111,6 +127,9 @@
             } else if (sectionId === 'charts') {
                 loadDates('chartDateSelect'); // Carregar datas para gráficos
                 document.getElementById('chartContent').classList.add('hidden');
+            } else if (sectionId === 'disponibilidade') {
+                loadDates('disponibilidadeDateSelect'); // Carregar datas para disponibilidade
+                document.getElementById('disponibilidadeContent').classList.add('hidden');
             }
         }
 
@@ -224,6 +243,31 @@
             }
         }
 
+        // Carregar disponibilidade
+        function loadDisponibilidade() {
+            const date = document.getElementById('disponibilidadeDateSelect').value;
+            if (!date) {
+                alert('Selecione uma data');
+                return;
+            }
+
+            fetch(`/chart/${date}/disponibilidade`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar disponibilidade:', data.error);
+                        alert('Erro ao carregar disponibilidade: ' + data.error);
+                        return;
+                    }
+                    updateDisponibilidadeChart(data.chart);
+                    document.getElementById('disponibilidadeContent').classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar disponibilidade:', error);
+                    alert('Erro ao carregar disponibilidade');
+                });
+        }
+
         // Atualizar tabela de relatório
         function updateReportTable(type, report) {
             const thead = document.getElementById('reportTableHead');
@@ -333,6 +377,36 @@
                 options: {
                     scales: {
                         y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Atualizar gráfico de Disponibilidade
+        let disponibilidadeChartInstance = null;
+        function updateDisponibilidadeChart(chartData) {
+            const ctx = document.getElementById('disponibilidadeChart').getContext('2d');
+            if (!chartData || !chartData.labels || !chartData.datasets) {
+                console.error('Dados do gráfico inválidos:', chartData);
+                alert('Erro: Dados do gráfico inválidos');
+                return;
+            }
+            if (disponibilidadeChartInstance) {
+                disponibilidadeChartInstance.destroy();
+            }
+            disponibilidadeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    scales: {
+                        x: { stacked: true },
+                        y: { beginAtZero: true, stacked: true }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Disponibilidade da Frota'
+                        }
                     }
                 }
             });
