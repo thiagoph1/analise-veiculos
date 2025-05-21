@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Veículos</title>
-    <!-- CSS local gerado pelo Tailwind CLI -->
     <link href="/styles.css" rel="stylesheet">
-    <!-- Chart.js UMD CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -21,6 +19,7 @@
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('disponibilidade')">Disponibilidade</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
+            <a href="/logout" class="block py-2 px-4 hover:bg-blue-700" id="logoutLink">Sair</a>
         </nav>
     </div>
 
@@ -112,6 +111,20 @@
     </div>
 
     <script>
+        // Verificar status de autenticação
+        function checkAuth() {
+            fetch('/dates', { method: 'GET' })
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao verificar autenticação:', error);
+                    window.location.href = '/login';
+                });
+        }
+
         // Mostrar/Esconder seções
         function showSection(sectionId) {
             document.querySelectorAll('section').forEach(section => {
@@ -122,13 +135,13 @@
                 toggleSidebar(); // Fechar menu em mobile
             }
             if (sectionId === 'reports') {
-                loadDates('dateSelect'); // Carregar datas para relatórios
+                loadDates('dateSelect');
                 document.getElementById('reportContent').classList.add('hidden');
             } else if (sectionId === 'charts') {
-                loadDates('chartDateSelect'); // Carregar datas para gráficos
+                loadDates('chartDateSelect');
                 document.getElementById('chartContent').classList.add('hidden');
             } else if (sectionId === 'disponibilidade') {
-                loadDates('disponibilidadeDateSelect'); // Carregar datas para disponibilidade
+                loadDates('disponibilidadeDateSelect');
                 document.getElementById('disponibilidadeContent').classList.add('hidden');
             }
         }
@@ -142,9 +155,15 @@
         // Carregar datas disponíveis
         function loadDates(selectId) {
             fetch('/dates')
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.error) {
+                    if (data && data.error) {
                         console.error('Erro ao carregar datas:', data.error);
                         alert('Erro ao carregar datas: ' + data.error);
                         return;
@@ -161,6 +180,7 @@
                 .catch(error => {
                     console.error('Erro ao carregar datas:', error);
                     alert('Erro ao carregar datas');
+                    window.location.href = '/login';
                 });
         }
 
@@ -190,9 +210,15 @@
             }
 
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.error) {
+                    if (data && data.error) {
                         console.error('Erro ao carregar relatório:', data.error);
                         alert('Erro ao carregar relatório: ' + data.error);
                         return;
@@ -212,6 +238,7 @@
                 .catch(error => {
                     console.error('Erro ao carregar relatório:', error);
                     alert('Erro ao carregar relatório');
+                    window.location.href = '/login';
                 });
         }
 
@@ -226,9 +253,15 @@
 
             if (type === 'status_patrimonio') {
                 fetch(`/chart/${date}/status_patrimonio`)
-                    .then(response => response.json())
+                    .then(response => {
+                        if (response.status === 401) {
+                            window.location.href = '/login';
+                            return;
+                        }
+                        return response.json();
+                    })
                     .then(data => {
-                        if (data.error) {
+                        if (data && data.error) {
                             console.error('Erro ao carregar gráfico:', data.error);
                             alert('Erro ao carregar gráfico: ' + data.error);
                             return;
@@ -239,6 +272,7 @@
                     .catch(error => {
                         console.error('Erro ao carregar gráfico:', error);
                         alert('Erro ao carregar gráfico');
+                        window.location.href = '/login';
                     });
             }
         }
@@ -252,9 +286,15 @@
             }
 
             fetch(`/chart/${date}/disponibilidade`)
-                .then(response => response.json())
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.error) {
+                    if (data && data.error) {
                         console.error('Erro ao carregar disponibilidade:', data.error);
                         alert('Erro ao carregar disponibilidade: ' + data.error);
                         return;
@@ -265,6 +305,7 @@
                 .catch(error => {
                     console.error('Erro ao carregar disponibilidade:', error);
                     alert('Erro ao carregar disponibilidade');
+                    window.location.href = '/login';
                 });
         }
 
@@ -276,7 +317,6 @@
             tbody.innerHTML = '';
 
             if (type === 'marcas' || type === 'tdv') {
-                // Tabela para Marcas ou TDV
                 thead.innerHTML = `
                     <tr class="bg-gray-200">
                         <th class="p-2 text-left">${type === 'marcas' ? 'Marca' : 'TDV'}</th>
@@ -293,7 +333,6 @@
                     tbody.appendChild(row);
                 }
             } else if (type === 'tdv_unidade') {
-                // Tabela para TDV/Unidade
                 thead.innerHTML = `
                     <tr class="bg-gray-200">
                         <th class="p-2 text-left">TDV</th>
@@ -308,7 +347,7 @@
                 report.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td class="p-2">${item.TDV}</td>
+                        <td class="p-2">${item.Tdv}</td>
                         <td class="p-2">${item.Unidade}</td>
                         <td class="p-2">${item.Quantidade}</td>
                     `;
@@ -411,6 +450,9 @@
                 }
             });
         }
+
+        // Verificar autenticação ao carregar a página
+        checkAuth();
 
         // Mostrar tela inicial por padrão
         showSection('home');

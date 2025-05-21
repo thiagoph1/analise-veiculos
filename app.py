@@ -1,22 +1,67 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 import pandas as pd
 import pymongo
 import os
+import bcrypt
 
 app = Flask(__name__, static_folder='public', static_url_path='')
-CORS(app)
+app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Use variável de ambiente no Render
+CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Restringir origens
+
+# Configuração do Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 # Conectar ao MongoDB Atlas
 mongo_uri = os.environ.get('MONGO_URI')
 client = pymongo.MongoClient(mongo_uri)
 db = client['veiculos_db']
 
+# Modelo de usuário
+class User(UserMixin):
+    def __init__(self, id):
+        self.id = id
+
+# Simulação de usuários com senhas hasheadas (substitua por MongoDB se preferir)
+users = {
+    'admin': bcrypt.hashpw('a315saex'.encode('utf-8'), bcrypt.gensalt()),
+    'sistran': bcrypt.hashpw('diradsistran'.encode('utf-8'), bcrypt.gensalt()),
+    'user2': bcrypt.hashpw('senha789564'.encode('utf-8'), bcrypt.gensalt())
+}
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User(user_id) if user_id in users else None
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if username in users and bcrypt.checkpw(password.encode('utf-8'), users[username]):
+            user = User(username)
+            login_user(user)
+            return redirect(url_for('index'))
+        return render_template('login.html', error='Credenciais inválidas'), 401
+    return render_template('login.html', error=None)
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+# Proteger rotas existentes
 @app.route('/')
+@login_required
 def index():
     return app.send_static_file('index.html')
 
 @app.route('/upload', methods=['POST'])
+@login_required
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'Nenhum arquivo enviado'}), 400
@@ -60,6 +105,7 @@ def upload_file():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/dates', methods=['GET'])
+@login_required
 def get_dates():
     collections = db.list_collection_names()
     dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
@@ -67,6 +113,7 @@ def get_dates():
     return jsonify({'dates': dates})
 
 @app.route('/report/<date>', methods=['GET'])
+@login_required
 def get_report(date):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
@@ -90,6 +137,7 @@ def get_report(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/report/<date>/tdv', methods=['GET'])
+@login_required
 def get_tdv_report(date):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
@@ -117,6 +165,7 @@ def get_tdv_report(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/report/<date>/tdv_unidade', methods=['GET'])
+@login_required
 def get_tdv_unidade_report(date):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
@@ -136,13 +185,14 @@ def get_tdv_unidade_report(date):
         
         # Gerar relatório
         report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
-        report_data = report.to_dict('records')  # Lista de {TDV, Unidade, Quantidade}
+        report_data = report.to_dict('records')
         
         return jsonify({'report': report_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/chart/<date>/status_patrimonio', methods=['GET'])
+@login_required
 def get_status_patrimonio_chart(date):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
@@ -169,6 +219,7 @@ def get_status_patrimonio_chart(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/chart/<date>/disponibilidade', methods=['GET'])
+@login_required
 def get_disponibilidade_chart(date):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
@@ -193,7 +244,7 @@ def get_disponibilidade_chart(date):
         # Agrupar por Unidade e calcular quantidades
         grouped = data.groupby(['Unidade', 'Status Patrimonio']).size().unstack(fill_value=0)
         chart_data = {
-            'labels': grouped.index.tolist(),  # Unidades
+            'labels': grouped.index.tolist(),
             'datasets': [
                 {
                     'label': 'Disponível',
