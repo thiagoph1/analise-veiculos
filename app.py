@@ -295,7 +295,16 @@ def get_disponibilidade_chart(date, unit_filter=None):
             grouped['Disponível'] = 0
         if 'Indisponível' not in grouped.columns:
             grouped['Indisponível'] = 0
-            
+        
+        # Calcular total por unidade (Disponível + Indisponível)
+        grouped['Total'] = grouped['Disponível'] + grouped['Indisponível']
+        
+        # Ordenar por Total em ordem decrescente
+        grouped = grouped.sort_values('Total', ascending=False)
+        
+        # Remover coluna Total para evitar interferência no gráfico
+        grouped = grouped.drop(columns=['Total'])
+        
         # Log para depuração
         print("Dados agrupados:", grouped.to_dict())
         
