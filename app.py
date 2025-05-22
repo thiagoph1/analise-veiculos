@@ -1,14 +1,14 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user # type: ignore
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 import pandas as pd
-import pymongo # type: ignore
+import pymongo
 import os
-import bcrypt # type: ignore
+import bcrypt
 
 app = Flask(__name__, static_folder='public', static_url_path='')
-app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Use variável de ambiente no Render
-CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Restringir origens
+app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
+CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
@@ -17,6 +17,8 @@ login_manager.login_view = 'login'
 
 # Conectar ao MongoDB Atlas
 mongo_uri = os.environ.get('MONGO_URI')
+if not mongo_uri:
+    raise ValueError("MONGO_URI não configurado nas variáveis de ambiente")
 client = pymongo.MongoClient(mongo_uri)
 db = client['veiculos_db']
 
@@ -25,7 +27,7 @@ class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
-# Simulação de usuários com senhas hasheadas (substitua por MongoDB se preferir)
+# Usuários com senhas hasheadas
 users = {
     'admin': bcrypt.hashpw('a315saex'.encode('utf-8'), bcrypt.gensalt()),
     'sistran': bcrypt.hashpw('diradsistran'.encode('utf-8'), bcrypt.gensalt()),
@@ -41,6 +43,8 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        if not username or not password:
+            return render_template('login.html', error='Usuário e senha são obrigatórios'), 400
         if username in users and bcrypt.checkpw(password.encode('utf-8'), users[username]):
             user = User(username)
             login_user(user)
@@ -54,7 +58,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# Proteger rotas existentes
 @app.route('/')
 @login_required
 def index():
@@ -80,7 +83,7 @@ def upload_file():
             missing = [col for col in required_columns if col not in data.columns]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
         
-        # Extrair data do nome do arquivo (assumindo formato YYYY-MM-DD.xlsx)
+        # Extrair data do nome do arquivo (formato YYYY-MM-DD.xlsx)
         date = file.filename.replace('.xlsx', '').replace('-', '_')
         collection_name = f'veiculos_{date}'
         collection = db[collection_name]
@@ -107,10 +110,13 @@ def upload_file():
 @app.route('/dates', methods=['GET'])
 @login_required
 def get_dates():
-    collections = db.list_collection_names()
-    dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
-    dates.sort(reverse=True)
-    return jsonify({'dates': dates})
+    try:
+        collections = db.list_collection_names()
+        dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
+        dates.sort(reverse=True)
+        return jsonify({'dates': dates})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/report/<date>', methods=['GET'])
 @login_required
@@ -122,16 +128,12 @@ def get_report(date):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
-        # Carregar dados
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        
-        # Gerar relatório
         report = data.groupby('Marca').size().to_dict()
         chart_data = {
             'labels': data.groupby('Ano modelo').size().index.astype(str).tolist(),
             'values': data.groupby('Ano modelo').size().values.tolist()
         }
-        
         return jsonify({'report': report, 'chart': chart_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -146,20 +148,14 @@ def get_tdv_report(date):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
-        # Carregar dados
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        
-        # Verificar coluna TDV
         if 'Tdv' not in data.columns:
             return jsonify({'error': 'Coluna TDV não encontrada'}), 400
-        
-        # Gerar relatório
         report = data.groupby('Tdv').size().to_dict()
         chart_data = {
             'labels': data.groupby('Tdv').size().index.tolist(),
             'values': data.groupby('Tdv').size().values.tolist()
         }
-        
         return jsonify({'report': report, 'chart': chart_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -174,19 +170,13 @@ def get_tdv_unidade_report(date):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
-        # Carregar dados
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        
-        # Verificar colunas TDV e Unidade
         required_columns = ['Tdv', 'Unidade']
         if not all(col in data.columns for col in required_columns):
             missing = [col for col in required_columns if col not in data.columns]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
-        
-        # Gerar relatório
         report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
         report_data = report.to_dict('records')
-        
         return jsonify({'report': report_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -201,19 +191,13 @@ def get_status_patrimonio_chart(date):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
-        # Carregar dados
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        
-        # Verificar coluna Status Patrimonio
         if 'Status Patrimonio' not in data.columns:
             return jsonify({'error': 'Coluna Status Patrimonio não encontrada'}), 400
-        
-        # Gerar dados do gráfico
         chart_data = {
             'labels': data.groupby('Status Patrimonio').size().index.tolist(),
             'values': data.groupby('Status Patrimonio').size().values.tolist()
         }
-        
         return jsonify({'chart': chart_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -228,20 +212,13 @@ def get_disponibilidade_chart(date):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
-        # Carregar dados
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        
-        # Verificar colunas
         if 'Unidade' not in data.columns or 'Status Patrimonio' not in data.columns:
             missing = ['Unidade' if 'Unidade' not in data.columns else '', 'Status Patrimonio' if 'Status Patrimonio' not in data.columns else '']
             missing = [m for m in missing if m]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
-        
-        # Categorizar Status Patrimonio
         disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']
         indisponiveis = ['A Alienar', 'Em Reparo', 'A Reparar', 'Inativo']
-        
-        # Agrupar por Unidade e calcular quantidades
         grouped = data.groupby(['Unidade', 'Status Patrimonio']).size().unstack(fill_value=0)
         chart_data = {
             'labels': grouped.index.tolist(),
@@ -262,11 +239,10 @@ def get_disponibilidade_chart(date):
                 }
             ]
         }
-        
         return jsonify({'chart': chart_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)
