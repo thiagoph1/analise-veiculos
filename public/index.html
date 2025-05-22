@@ -277,7 +277,7 @@
                 title = `Gráfico de Status Patrimônio${unitFilter !== 'all' ? ` - ${unitFilter === 'elos' ? 'Elos do SISTRAN' : 'Extras'}` : ''}`;
             } else if (type === 'disponibilidade') {
                 url = unitFilter === 'all' ? `/chart/${date}/disponibilidade` : `/chart/${date}/disponibilidade/${unitFilter}`;
-                title = `Gráfico de Disponibilidade${unitFilter !== 'all' ? ` - ${unitFilter === 'elos' ? 'Elos do SISTRAN' : 'Extras'}` : ''}`;
+                title = `DISPONIBILIDADE DA FROTA${unitFilter !== 'all' ? ` - ${unitFilter === 'elos' ? 'Elos do SISTRAN' : 'Extras'}` : ''}`;
             } else {
                 alert('Tipo de gráfico inválido');
                 return;
@@ -521,9 +521,32 @@
             if (chartInstance) {
                 chartInstance.destroy();
             }
+
+            // Calcular totais para Disponível e Indisponível
+            const totalDisponivel = chartData.datasets[0].data.reduce((sum, val) => sum + val, 0);
+            const totalIndisponivel = chartData.datasets[1].data.reduce((sum, val) => sum + val, 0);
+
             chartInstance = new Chart(ctx, {
                 type: 'bar',
-                data: chartData,
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: `Disponível (${totalDisponivel})`,
+                            data: chartData.datasets[0].data,
+                            backgroundColor: 'rgba(68, 114, 196, 0.6)', // Azul para Disponível
+                            borderColor: 'rgba(68, 114, 196, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: `Indisponível (${totalIndisponivel})`,
+                            data: chartData.datasets[1].data,
+                            backgroundColor: 'rgba(237, 125, 49, 0.6)', // Laranja para Indisponível
+                            borderColor: 'rgba(237, 125, 49, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
                 options: {
                     scales: {
                         x: { stacked: true },
@@ -532,7 +555,15 @@
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Disponibilidade da Frota'
+                            text: 'DISPONIBILIDADE DA FROTA'
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
                         }
                     }
                 }
