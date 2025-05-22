@@ -64,7 +64,7 @@ def get_disponibilidade_chart(date, unit_filter=None):
         grouped = grouped.drop(columns=['Total'])
         
         # Log para depuração
-        print("Dados agrupados:", grouped.to_dict())
+        #print("Dados agrupados:", grouped.to_dict())
         
         chart_data = {
             'labels': grouped.index.tolist(),
