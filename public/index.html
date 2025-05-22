@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Veículos</title>
-    <!-- Tailwind CSS gerado localmente -->
-    <link href="/styles.css" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <link href="/css/styles.css" rel="stylesheet">
     <!-- Chart.js UMD CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
@@ -38,6 +38,7 @@
             <div class="text-center bg-black bg-opacity-50 p-8 rounded-lg">
                 <h1 class="text-4xl font-bold mb-4">Bem-vindo à Análise de Veículos</h1>
                 <p class="text-lg">Analise dados de viaturas com relatórios e gráficos detalhados.</p>
+                <a href="/upload" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Fazer Upload de Dados</a>
             </div>
         </section>
 
@@ -51,7 +52,9 @@
                         <option value="tdv">TDV</option>
                         <option value="tdv_unidade">TDV/Unidade</option>
                     </select>
-                    <select id="dateSelect" class="p-2 border rounded"></select>
+                    <select id="dateSelect" class="p-2 border rounded">
+                        <option value="">Selecione uma data</option>
+                    </select>
                     <select id="tdvFilter" class="p-2 border rounded hidden">
                         <option value="all">Todos os TDVs</option>
                     </select>
@@ -83,7 +86,9 @@
                         <option value="status_patrimonio">Status Patrimônio</option>
                         <option value="disponibilidade">Disponibilidade</option>
                     </select>
-                    <select id="chartDateSelect" class="p-2 border rounded"></select>
+                    <select id="chartDateSelect" class="p-2 border rounded">
+                        <option value="">Selecione uma data</option>
+                    </select>
                     <select id="unitFilter" class="p-2 border rounded">
                         <option value="all">Todas as Unidades</option>
                         <option value="elos">Elos do SISTRAN</option>
@@ -102,7 +107,7 @@
         <section id="about" class="hidden">
             <h2 class="text-2xl font-bold mb-4">Sobre o Projeto</h2>
             <div class="bg-white p-6 rounded-lg shadow-md">
-                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel importadas via GitHub Actions e integradas ao MongoDB Atlas. Visualize relatórios detalhados e gráficos interativos.</p>
+                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel importadas e integradas ao MongoDB Atlas. Visualize relatórios detalhados e gráficos interativos.</p>
                 <p class="mt-4">Desenvolvido com Flask, MongoDB Atlas, Pandas, e Tailwind CSS.</p>
             </div>
         </section>
@@ -151,7 +156,7 @@
                         return;
                     }
                     const dateSelect = document.getElementById(selectId);
-                    dateSelect.innerHTML = '';
+                    dateSelect.innerHTML = '<option value="">Selecione uma data</option>';
                     data.dates.forEach(date => {
                         const option = document.createElement('option');
                         option.value = date;

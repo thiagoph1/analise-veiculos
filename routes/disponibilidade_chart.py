@@ -34,7 +34,7 @@ def get_disponibilidade_chart(date, unit_filter=None):
             return jsonify({'chart': {'labels': [], 'datasets': [{'label': 'Disponível', 'data': []}, {'label': 'Indisponível', 'data': []}]}}), 200
         
         # Log para depuração
-        print("Valores únicos em Unidade após filtro:", data['Unidade'].unique().tolist())
+        #print("Valores únicos em Unidade após filtro:", data['Unidade'].unique().tolist())
         
         # Definir categorias
         disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']

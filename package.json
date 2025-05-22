@@ -6,7 +6,11 @@
     "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify",
     "watch:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch"
   },
-  "dependencies": {
-    "tailwindcss": "^3.4.3"
-  }
+  "main": "tailwind.config.js",
+  "devDependencies": {
+    "tailwindcss": "^4.1.7"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

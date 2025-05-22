@@ -7,4 +7,4 @@ index_bp = Blueprint('index', __name__)
 @index_bp.route('/')
 @login_required
 def index():
-    return current_app.send_static_file('index.html')  # Usar current_app para acessar o app
+    return current_app.send_static_file('index.html')
