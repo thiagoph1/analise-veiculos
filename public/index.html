@@ -4,107 +4,427 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise de Veículos</title>
+    <!-- Tailwind CSS via CDN -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-    <style>
-        .sidebar { transition: width 0.3s; }
-        .sidebar-collapsed { width: 60px; }
-        .sidebar-expanded { width: 200px; }
-        .content { transition: margin-left 0.3s; }
-    </style>
+    <!-- Chart.js UMD CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-gray-100">
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar sidebar-expanded bg-blue-800 text-white p-4">
-            <button id="toggleSidebar" class="text-white mb-4 focus:outline-none">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                </svg>
-            </button>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('relatorios')">Relatórios</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('graficos')">Gráficos</a>
+<body class="bg-gray-100 font-sans">
+    <!-- Menu Lateral -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-blue-900 text-white sidebar z-10" id="sidebar">
+        <div class="p-4">
+            <h1 class="text-2xl font-bold">Análise de Veículos</h1>
+        </div>
+        <nav class="mt-4">
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('home')">Início</a>
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('disponibilidade')">Disponibilidade</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('upload')">Upload</a>
-            <a href="{{ url_for('logout') }}" class="block py-2 px-4 hover:bg-blue-700">Sair</a>
-        </div>
-        <!-- Content -->
-        <div class="flex-1 p-6 content" id="content">
-            <div class="mb-4">
-                <label for="dateSelector" class="block text-sm font-medium text-gray-700">Selecionar Data</label>
-                <select id="dateSelector" class="p-2 border rounded" onchange="loadData(this.value)">
-                    <option value="">Selecione uma data</option>
-                </select>
-            </div>
-            <section id="relatorios" class="">
-                <h2 class="text-2xl font-bold mb-4">Relatórios</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <div id="report-marca" class="mb-4">
-                        <h3 class="text-lg font-semibold">Veículos por Marca</h3>
-                        <ul id="report-marca-content"></ul>
-                    </div>
-                    <div id="report-tdv" class="mb-4">
-                        <h3 class="text-lg font-semibold">Veículos por TDV</h3>
-                        <ul id="report-tdv-content"></ul>
-                    </div>
-                    <div id="report-tdv-unidade">
-                        <h3 class="text-lg font-semibold">Veículos por TDV e Unidade</h3>
-                        <table class="w-full border-collapse border">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="border p-2">TDV</th>
-                                    <th class="border p-2">Unidade</th>
-                                    <th class="border p-2">Quantidade</th>
-                                </tr>
-                            </thead>
-                            <tbody id="report-tdv-unidade-content"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-            <section id="graficos" class="hidden">
-                <h2 class="text-2xl font-bold mb-4">Gráficos</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-2">Status Patrimônio</h3>
-                    <canvas id="chart-status-patrimonio" class="mb-4"></canvas>
-                    <h3 class="text-lg font-semibold mb-2">Disponibilidade por Unidade</h3>
-                    <canvas id="chart-disponibilidade"></canvas>
-                </div>
-            </section>
-            <section id="upload" class="hidden">
-                <h2 class="text-2xl font-bold mb-4">Upload de Planilha</h2>
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <input type="file" name="file" accept=".xlsx" class="p-2 border rounded mb-4">
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Enviar</button>
-                    </form>
-                    <p id="uploadMessage" class="mt-4 hidden"></p>
-                </div>
-            </section>
-        </div>
+            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
+            <a href="/logout" class="block py-2 px-4 hover:bg-blue-700">Sair</a>
+        </nav>
     </div>
-    <script>
-        let statusPatrimonioChart, disponibilidadeChart;
 
+    <!-- Botão de Menu para Mobile -->
+    <button class="md:hidden fixed top-4 left-4 z-20 p-2 bg-blue-900 text-white rounded" onclick="toggleSidebar()">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+    </button>
+
+    <!-- Conteúdo Principal -->
+    <div class="ml-0 md:ml-64 p-6 transition-all">
+        <!-- Tela Inicial -->
+        <section id="home" class="min-h-screen flex items-center justify-center text-white">
+            <div class="text-center bg-black bg-opacity-50 p-8 rounded-lg">
+                <h1 class="text-4xl font-bold mb-4">Bem-vindo à Análise de Veículos</h1>
+                <p class="text-lg">Analise dados de viaturas com relatórios e gráficos detalhados.</p>
+            </div>
+        </section>
+
+        <!-- Seção de Relatórios -->
+        <section id="reports" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Relatórios por Data</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <select id="reportType" class="p-2 border rounded">
+                        <option value="marcas">Marcas</option>
+                        <option value="tdv">TDV</option>
+                        <option value="tdv_unidade">TDV/Unidade</option>
+                    </select>
+                    <select id="dateSelect" class="p-2 border rounded"></select>
+                    <button onclick="loadReport()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Relatório</button>
+                </div>
+            </div>
+            <div id="reportContent" class="hidden">
+                <h3 id="reportTitle" class="text-xl font-semibold mb-2"></h3>
+                <table id="reportTable" class="w-full bg-white rounded-lg shadow-md">
+                    <thead id="reportTableHead"></thead>
+                    <tbody id="reportTableBody"></tbody>
+                </table>
+                <h3 id="chartTitle" class="text-xl font-semibold mt-6 mb-2 hidden">Gráfico</h3>
+                <canvas id="reportChart" class="max-w-lg hidden"></canvas>
+            </div>
+        </section>
+
+        <!-- Seção de Gráficos -->
+        <section id="charts" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Gráficos por Data</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <select id="chartType" class="p-2 border rounded">
+                        <option value="status_patrimonio">Status Patrimônio</option>
+                    </select>
+                    <select id="chartDateSelect" class="p-2 border rounded"></select>
+                    <button onclick="loadChart()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Gráfico</button>
+                </div>
+            </div>
+            <div id="chartContent" class="hidden">
+                <h3 class="text-xl font-semibold mb-2">Gráfico de Status Patrimônio</h3>
+                <canvas id="statusChart" class="max-w-lg"></canvas>
+            </div>
+        </section>
+
+        <!-- Seção de Disponibilidade -->
+        <section id="disponibilidade" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Disponibilidade por Data</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <select id="disponibilidadeDateSelect" class="p-2 border rounded"></select>
+                    <button onclick="loadDisponibilidade()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Disponibilidade</button>
+                </div>
+            </div>
+            <div id="disponibilidadeContent" class="hidden">
+                <h3 class="text-xl font-semibold mb-2">Disponibilidade da Frota</h3>
+                <canvas id="disponibilidadeChart" class="max-w-lg"></canvas>
+            </div>
+        </section>
+
+        <!-- Seção de Upload -->
+        <section id="upload" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Upload de Planilha</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" name="file" accept=".xlsx" class="p-2 border rounded mb-4">
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Enviar</button>
+                </form>
+                <p id="uploadMessage" class="mt-4 hidden"></p>
+            </div>
+        </section>
+
+        <!-- Seção Sobre -->
+        <section id="about" class="hidden">
+            <h2 class="text-2xl font-bold mb-4">Sobre o Projeto</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <p class="text-lg">Este projeto permite a análise de dados de viaturas a partir de planilhas Excel importadas via GitHub Actions e integradas ao MongoDB Atlas. Visualize relatórios detalhados e gráficos interativos.</p>
+                <p class="mt-4">Desenvolvido com Flask, MongoDB Atlas, Pandas, e Tailwind CSS.</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Mostrar/Esconder seções
         function showSection(sectionId) {
-            document.querySelectorAll('section').forEach(section => section.classList.add('hidden'));
+            document.querySelectorAll('section').forEach(section => {
+                section.classList.add('hidden');
+            });
             document.getElementById(sectionId).classList.remove('hidden');
-            if (sectionId === 'graficos' && document.getElementById('dateSelector').value) {
-                loadGraficos(document.getElementById('dateSelector').value);
+            if (window.innerWidth < 768) {
+                toggleSidebar(); // Fechar menu em mobile
             }
-            if (sectionId === 'relatorios' && document.getElementById('dateSelector').value) {
-                loadRelatorios(document.getElementById('dateSelector').value);
+            if (sectionId === 'reports') {
+                loadDates('dateSelect'); // Carregar datas para relatórios
+                document.getElementById('reportContent').classList.add('hidden');
+            } else if (sectionId === 'charts') {
+                loadDates('chartDateSelect'); // Carregar datas para gráficos
+                document.getElementById('chartContent').classList.add('hidden');
+            } else if (sectionId === 'disponibilidade') {
+                loadDates('disponibilidadeDateSelect'); // Carregar datas para disponibilidade
+                document.getElementById('disponibilidadeContent').classList.add('hidden');
             }
         }
 
-        document.getElementById('toggleSidebar').addEventListener('click', function() {
+        // Alternar menu lateral em mobile
+        function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
-            sidebar.classList.toggle('sidebar-expanded');
-            sidebar.classList.toggle('sidebar-collapsed');
-            content.classList.toggle('ml-60');
-            content.classList.toggle('ml-200');
-        });
+            sidebar.classList.toggle('open');
+        }
 
+        // Carregar datas disponíveis
+        function loadDates(selectId) {
+            fetch('/dates')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar datas:', data.error);
+                        alert('Erro ao carregar datas: ' + data.error);
+                        return;
+                    }
+                    const dateSelect = document.getElementById(selectId);
+                    dateSelect.innerHTML = '';
+                    data.dates.forEach(date => {
+                        const option = document.createElement('option');
+                        option.value = date;
+                        option.textContent = date;
+                        dateSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar datas:', error);
+                    alert('Erro ao carregar datas');
+                });
+        }
+
+        // Carregar relatório
+        function loadReport() {
+            const type = document.getElementById('reportType').value;
+            const date = document.getElementById('dateSelect').value;
+            if (!date) {
+                alert('Selecione uma data');
+                return;
+            }
+
+            let url;
+            let title;
+            if (type === 'marcas') {
+                url = `/report/${date}`;
+                title = 'Relatório de Marcas';
+            } else if (type === 'tdv') {
+                url = `/report/${date}/tdv`;
+                title = 'Relatório de TDV';
+            } else if (type === 'tdv_unidade') {
+                url = `/report/${date}/tdv_unidade`;
+                title = 'Relatório de TDV/Unidade';
+            } else {
+                alert('Tipo de relatório inválido');
+                return;
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar relatório:', data.error);
+                        alert('Erro ao carregar relatório: ' + data.error);
+                        return;
+                    }
+                    updateReportTable(type, data.report);
+                    if (type !== 'tdv_unidade') {
+                        updateReportChart(data.chart);
+                        document.getElementById('chartTitle').classList.remove('hidden');
+                        document.getElementById('reportChart').classList.remove('hidden');
+                    } else {
+                        document.getElementById('chartTitle').classList.add('hidden');
+                        document.getElementById('reportChart').classList.add('hidden');
+                    }
+                    document.getElementById('reportTitle').textContent = title;
+                    document.getElementById('reportContent').classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar relatório:', error);
+                    alert('Erro ao carregar relatório');
+                });
+        }
+
+        // Carregar gráfico
+        function loadChart() {
+            const type = document.getElementById('chartType').value;
+            const date = document.getElementById('chartDateSelect').value;
+            if (!date) {
+                alert('Selecione uma data');
+                return;
+            }
+
+            if (type === 'status_patrimonio') {
+                fetch(`/chart/${date}/status_patrimonio`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('Erro ao carregar gráfico:', data.error);
+                            alert('Erro ao carregar gráfico: ' + data.error);
+                            return;
+                        }
+                        updateStatusChart(data.chart);
+                        document.getElementById('chartContent').classList.remove('hidden');
+                    })
+                    .catch(error => {
+                        console.error('Erro ao carregar gráfico:', error);
+                        alert('Erro ao carregar gráfico');
+                    });
+            }
+        }
+
+        // Carregar disponibilidade
+        function loadDisponibilidade() {
+            const date = document.getElementById('disponibilidadeDateSelect').value;
+            if (!date) {
+                alert('Selecione uma data');
+                return;
+            }
+
+            fetch(`/chart/${date}/disponibilidade`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar disponibilidade:', data.error);
+                        alert('Erro ao carregar disponibilidade: ' + data.error);
+                        return;
+                    }
+                    updateDisponibilidadeChart(data.chart);
+                    document.getElementById('disponibilidadeContent').classList.remove('hidden');
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar disponibilidade:', error);
+                    alert('Erro ao carregar disponibilidade');
+                });
+        }
+
+        // Atualizar tabela de relatório
+        function updateReportTable(type, report) {
+            const thead = document.getElementById('reportTableHead');
+            const tbody = document.getElementById('reportTableBody');
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            if (type === 'marcas' || type === 'tdv') {
+                // Tabela para Marcas ou TDV
+                thead.innerHTML = `
+                    <tr class="bg-gray-200">
+                        <th class="p-2 text-left">${type === 'marcas' ? 'Marca' : 'TDV'}</th>
+                        <th class="p-2 text-left">Quantidade</th>
+                    </tr>
+                `;
+                if (!report || Object.keys(report).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="2" class="p-2">Nenhum dado disponível</td></tr>';
+                    return;
+                }
+                for (const [key, quantidade] of Object.entries(report)) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td class="p-2">${key}</td><td class="p-2">${quantidade}</td>`;
+                    tbody.appendChild(row);
+                }
+            } else if (type === 'tdv_unidade') {
+                // Tabela para TDV/Unidade
+                thead.innerHTML = `
+                    <tr class="bg-gray-200">
+                        <th class="p-2 text-left">TDV</th>
+                        <th class="p-2 text-left">Unidade</th>
+                        <th class="p-2 text-left">Quantidade</th>
+                    </tr>
+                `;
+                if (!report || report.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="p-2">Nenhum dado disponível</td></tr>';
+                    return;
+                }
+                report.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="p-2">${item.Tdv}</td>
+                        <td class="p-2">${item.Unidade}</td>
+                        <td class="p-2">${item.Quantidade}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Atualizar gráfico de relatório (Marcas, TDV)
+        let reportChartInstance = null;
+        function updateReportChart(chartData) {
+            const ctx = document.getElementById('reportChart').getContext('2d');
+            if (!chartData || !chartData.labels || !chartData.values) {
+                console.error('Dados do gráfico inválidos:', chartData);
+                alert('Erro: Dados do gráfico inválidos');
+                return;
+            }
+            if (reportChartInstance) {
+                reportChartInstance.destroy();
+            }
+            const label = document.getElementById('reportType').value === 'marcas' ? 'Quantidade por Marca' : 'Quantidade por TDV';
+            reportChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: label,
+                        data: chartData.values,
+                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                        borderColor: 'rgba(37, 99, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Atualizar gráfico de Status Patrimônio
+        let statusChartInstance = null;
+        function updateStatusChart(chartData) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            if (!chartData || !chartData.labels || !chartData.values) {
+                console.error('Dados do gráfico inválidos:', chartData);
+                alert('Erro: Dados do gráfico inválidos');
+                return;
+            }
+            if (statusChartInstance) {
+                statusChartInstance.destroy();
+            }
+            statusChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [{
+                        label: 'Quantidade por Status Patrimônio',
+                        data: chartData.values,
+                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                        borderColor: 'rgba(34, 197, 94, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Atualizar gráfico de Disponibilidade
+        let disponibilidadeChartInstance = null;
+        function updateDisponibilidadeChart(chartData) {
+            const ctx = document.getElementById('disponibilidadeChart').getContext('2d');
+            if (!chartData || !chartData.labels || !chartData.datasets) {
+                console.error('Dados do gráfico inválidos:', chartData);
+                alert('Erro: Dados do gráfico inválidos');
+                return;
+            }
+            if (disponibilidadeChartInstance) {
+                disponibilidadeChartInstance.destroy();
+            }
+            disponibilidadeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    scales: {
+                        x: { stacked: true },
+                        y: { beginAtZero: true, stacked: true }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Disponibilidade da Frota'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Manipular upload de planilha
         document.getElementById('uploadForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(this);
@@ -121,7 +441,9 @@
                 } else {
                     message.textContent = 'Upload concluído! Relatório gerado.';
                     message.classList.add('text-green-500');
-                    loadDates(); // Atualizar seletor de datas
+                    loadDates('dateSelect');
+                    loadDates('chartDateSelect');
+                    loadDates('disponibilidadeDateSelect');
                 }
                 message.classList.remove('hidden');
             })
@@ -132,134 +454,8 @@
             });
         });
 
-        function loadDates() {
-            fetch('/dates')
-                .then(response => response.json())
-                .then(data => {
-                    const selector = document.getElementById('dateSelector');
-                    selector.innerHTML = '<option value="">Selecione uma data</option>';
-                    data.dates.forEach(date => {
-                        const option = document.createElement('option');
-                        option.value = date;
-                        option.textContent = date;
-                        selector.appendChild(option);
-                    });
-                });
-        }
-
-        function loadRelatorios(date) {
-            if (!date) return;
-            // Relatório por Marca
-            fetch(`/report/${date}`)
-                .then(response => response.json())
-                .then(data => {
-                    const content = document.getElementById('report-marca-content');
-                    content.innerHTML = '';
-                    if (data.error) {
-                        content.innerHTML = `<li class="text-red-500">${data.error}</li>`;
-                        return;
-                    }
-                    for (const [marca, count] of Object.entries(data.report)) {
-                        const li = document.createElement('li');
-                        li.textContent = `${marca}: ${count} veículos`;
-                        content.appendChild(li);
-                    }
-                });
-
-            // Relatório por TDV
-            fetch(`/report/${date}/tdv`)
-                .then(response => response.json())
-                .then(data => {
-                    const content = document.getElementById('report-tdv-content');
-                    content.innerHTML = '';
-                    if (data.error) {
-                        content.innerHTML = `<li class="text-red-500">${data.error}</li>`;
-                        return;
-                    }
-                    for (const [tdv, count] of Object.entries(data.report)) {
-                        const li = document.createElement('li');
-                        li.textContent = `${tdv}: ${count} veículos`;
-                        content.appendChild(li);
-                    }
-                });
-
-            // Relatório por TDV e Unidade
-            fetch(`/report/${date}/tdv_unidade`)
-                .then(response => response.json())
-                .then(data => {
-                    const content = document.getElementById('report-tdv-unidade-content');
-                    content.innerHTML = '';
-                    if (data.error) {
-                        content.innerHTML = `<tr><td colspan="3" class="text-red-500 p-2">${data.error}</td></tr>`;
-                        return;
-                    }
-                    data.report.forEach(row => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="border p-2">${row.Tdv}</td>
-                            <td class="border p-2">${row.Unidade}</td>
-                            <td class="border p-2">${row.Quantidade}</td>
-                        `;
-                        content.appendChild(tr);
-                    });
-                });
-        }
-
-        function loadGraficos(date) {
-            if (!date) return;
-            // Gráfico de Status Patrimônio
-            fetch(`/chart/${date}/status_patrimonio`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('chart-status-patrimonio').parentElement.innerHTML = `<p class="text-red-500">${data.error}</p>`;
-                        return;
-                    }
-                    if (statusPatrimonioChart) statusPatrimonioChart.destroy();
-                    const ctx = document.getElementById('chart-status-patrimonio').getContext('2d');
-                    statusPatrimonioChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: data.chart.labels,
-                            datasets: [{
-                                label: 'Status Patrimônio',
-                                data: data.chart.values,
-                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            scales: { y: { beginAtZero: true } }
-                        }
-                    });
-                });
-
-            // Gráfico de Disponibilidade
-            fetch(`/chart/${date}/disponibilidade`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('chart-disponibilidade').parentElement.innerHTML = `<p class="text-red-500">${data.error}</p>`;
-                        return;
-                    }
-                    if (disponibilidadeChart) disponibilidadeChart.destroy();
-                    const ctx = document.getElementById('chart-disponibilidade').getContext('2d');
-                    disponibilidadeChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: data.chart.labels,
-                            datasets: data.chart.datasets
-                        },
-                        options: {
-                            scales: { y: { beginAtZero: true } }
-                        }
-                    });
-                });
-        }
-
-        // Carregar datas na inicialização
-        loadDates();
+        // Mostrar tela inicial por padrão
+        showSection('home');
     </script>
 </body>
 </html>
