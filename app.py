@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user # type: ignore
 import pandas as pd
-import pymongo
+import pymongo # type: ignore
 import os
-import bcrypt
+import bcrypt # type: ignore
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Use variável de ambiente no Render
