@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user  # type: ignore
 import pandas as pd
-import pymongo
+import pymongo # type: ignore
 import os
-import bcrypt
+import bcrypt # type: ignore
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
@@ -196,7 +196,7 @@ def get_status_patrimonio_chart(date):
             return jsonify({'error': 'Coluna Status Patrimonio não encontrada'}), 400
         chart_data = {
             'labels': data.groupby('Status Patrimonio').size().index.tolist(),
-            'values': data.groupby('Status Patrimonio').size().values.tolist()
+            'values': [int(x) for x in data.groupby('Status Patrimonio').size().values.tolist()]  # Converter int64 para int
         }
         return jsonify({'chart': chart_data})
     except Exception as e:
@@ -225,14 +225,14 @@ def get_disponibilidade_chart(date):
             'datasets': [
                 {
                     'label': 'Disponível',
-                    'data': [grouped[status].sum() if status in grouped.columns else 0 for status in disponiveis],
+                    'data': [int(grouped[status].sum()) if status in grouped.columns else 0 for status in disponiveis],  # Converter int64 para int
                     'backgroundColor': 'rgba(37, 99, 235, 0.2)',
                     'borderColor': 'rgba(37, 99, 235, 1)',
                     'borderWidth': 1
                 },
                 {
                     'label': 'Indisponível',
-                    'data': [grouped[status].sum() if status in grouped.columns else 0 for status in indisponiveis],
+                    'data': [int(grouped[status].sum()) if status in grouped.columns else 0 for status in indisponiveis],  # Converter int64 para int
                     'backgroundColor': 'rgba(255, 165, 0, 0.2)',
                     'borderColor': 'rgba(255, 165, 0, 1)',
                     'borderWidth': 1

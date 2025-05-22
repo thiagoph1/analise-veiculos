@@ -59,10 +59,15 @@
             </div>
             <div id="reportContent" class="hidden">
                 <h3 id="reportTitle" class="text-xl font-semibold mb-2"></h3>
-                <table id="reportTable" class="w-full bg-white rounded-lg shadow-md">
+                <table id="reportTable" class="w-full bg-white rounded-lg shadow-md text-sm">
                     <thead id="reportTableHead"></thead>
                     <tbody id="reportTableBody"></tbody>
                 </table>
+                <div id="pagination" class="mt-4 flex justify-between items-center hidden">
+                    <button onclick="prevPage()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">Anterior</button>
+                    <span id="pageInfo"></span>
+                    <button onclick="nextPage()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400">Próximo</button>
+                </div>
                 <h3 id="chartTitle" class="text-xl font-semibold mt-6 mb-2 hidden">Gráfico</h3>
                 <canvas id="reportChart" class="max-w-lg hidden"></canvas>
             </div>
@@ -124,6 +129,13 @@
     </div>
 
     <script>
+        // Estado da paginação
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let reportData = [];
+        let sortColumn = null;
+        let sortDirection = 'asc';
+
         // Mostrar/Esconder seções
         function showSection(sectionId) {
             document.querySelectorAll('section').forEach(section => {
@@ -209,7 +221,15 @@
                         alert('Erro ao carregar relatório: ' + data.error);
                         return;
                     }
-                    updateReportTable(type, data.report);
+                    if (type === 'tdv_unidade') {
+                        reportData = data.report;
+                        currentPage = 1;
+                        sortColumn = null;
+                        sortDirection = 'asc';
+                        updatePaginatedTable();
+                    } else {
+                        updateReportTable(type, data.report);
+                    }
                     if (type !== 'tdv_unidade') {
                         updateReportChart(data.chart);
                         document.getElementById('chartTitle').classList.remove('hidden');
@@ -286,6 +306,7 @@
             const tbody = document.getElementById('reportTableBody');
             thead.innerHTML = '';
             tbody.innerHTML = '';
+            document.getElementById('pagination').classList.add('hidden');
 
             if (type === 'marcas' || type === 'tdv') {
                 // Tabela para Marcas ou TDV
@@ -305,28 +326,94 @@
                     tbody.appendChild(row);
                 }
             } else if (type === 'tdv_unidade') {
-                // Tabela para TDV/Unidade
-                thead.innerHTML = `
-                    <tr class="bg-gray-200">
-                        <th class="p-2 text-left">TDV</th>
-                        <th class="p-2 text-left">Unidade</th>
-                        <th class="p-2 text-left">Quantidade</th>
-                    </tr>
-                `;
-                if (!report || report.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="p-2">Nenhum dado disponível</td></tr>';
-                    return;
-                }
-                report.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-2">${item.Tdv}</td>
-                        <td class="p-2">${item.Unidade}</td>
-                        <td class="p-2">${item.Quantidade}</td>
-                    `;
-                    tbody.appendChild(row);
+                updatePaginatedTable();
+            }
+        }
+
+        // Atualizar tabela paginada para TDV/Unidade
+        function updatePaginatedTable() {
+            const thead = document.getElementById('reportTableHead');
+            const tbody = document.getElementById('reportTableBody');
+            thead.innerHTML = `
+                <tr class="bg-gray-200">
+                    <th class="p-1 text-left cursor-pointer" onclick="sortTable('Tdv')">TDV</th>
+                    <th class="p-1 text-left cursor-pointer" onclick="sortTable('Unidade')">Unidade</th>
+                    <th class="p-1 text-left cursor-pointer" onclick="sortTable('Quantidade')">Quantidade</th>
+                </tr>
+            `;
+            tbody.innerHTML = '';
+
+            if (!reportData || reportData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="p-1">Nenhum dado disponível</td></tr>';
+                document.getElementById('pagination').classList.add('hidden');
+                return;
+            }
+
+            // Ordenar dados
+            let sortedData = [...reportData];
+            if (sortColumn) {
+                sortedData.sort((a, b) => {
+                    let valA = a[sortColumn];
+                    let valB = b[sortColumn];
+                    if (sortColumn === 'Quantidade') {
+                        valA = Number(valA);
+                        valB = Number(valB);
+                    }
+                    if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                    if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                    return 0;
                 });
             }
+
+            // Calcular índices de paginação
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const paginatedData = sortedData.slice(start, end);
+
+            // Preencher tabela
+            paginatedData.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="p-1">${item.Tdv}</td>
+                    <td class="p-1">${item.Unidade}</td>
+                    <td class="p-1">${item.Quantidade}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Atualizar paginação
+            const totalPages = Math.ceil(reportData.length / rowsPerPage);
+            document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+            document.getElementById('pagination').classList.remove('hidden');
+            document.querySelector('button[onclick="prevPage()"]').disabled = currentPage === 1;
+            document.querySelector('button[onclick="nextPage()"]').disabled = currentPage === totalPages;
+        }
+
+        // Funções de paginação
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePaginatedTable();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(reportData.length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePaginatedTable();
+            }
+        }
+
+        // Ordenar tabela
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            updatePaginatedTable();
         }
 
         // Atualizar gráfico de relatório (Marcas, TDV)
@@ -362,7 +449,7 @@
             });
         }
 
-        // Atualizar gráfico de Status Patrimônio
+        // Atualizar gráfico de Status Patrimônio (Pizza)
         let statusChartInstance = null;
         function updateStatusChart(chartData) {
             const ctx = document.getElementById('statusChart').getContext('2d');
@@ -375,20 +462,36 @@
                 statusChartInstance.destroy();
             }
             statusChartInstance = new Chart(ctx, {
-                type: 'bar',
+                type: 'pie',
                 data: {
                     labels: chartData.labels,
                     datasets: [{
                         label: 'Quantidade por Status Patrimônio',
                         data: chartData.values,
-                        backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                        borderColor: 'rgba(34, 197, 94, 1)',
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.6)',
+                            'rgba(255, 99, 132, 0.6)',
+                            'rgba(54, 162, 235, 0.6)',
+                            'rgba(255, 206, 86, 0.6)',
+                            'rgba(75, 192, 192, 0.6)',
+                            'rgba(153, 102, 255, 0.6)'
+                        ],
+                        borderColor: [
+                            'rgba(34, 197, 94, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)'
+                        ],
                         borderWidth: 1
                     }]
                 },
                 options: {
-                    scales: {
-                        y: { beginAtZero: true }
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
                     }
                 }
             });
