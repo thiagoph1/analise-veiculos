@@ -34,6 +34,14 @@ users = {
     'user2': bcrypt.hashpw('senha789564'.encode('utf-8'), bcrypt.gensalt())
 }
 
+# Lista de unidades "Elos do SISTRAN"
+ELOS_SISTRAN = [
+    'AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV',
+    'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III',
+    'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO',
+    'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME'
+]
+
 @login_manager.user_loader
 def load_user(user_id):
     return User(user_id) if user_id in users else None
@@ -118,6 +126,24 @@ def get_dates():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/tdvs/<date>', methods=['GET'])
+@login_required
+def get_tdvs(date):
+    collection_name = f'veiculos_{date.replace("-", "_")}'
+    collection = db[collection_name]
+    
+    if collection_name not in db.list_collection_names():
+        return jsonify({'error': 'Data não encontrada'}), 404
+    
+    try:
+        data = pd.DataFrame(list(collection.find({}, {'_id': 0, 'Tdv': 1})))
+        if 'Tdv' not in data.columns:
+            return jsonify({'error': 'Coluna Tdv não encontrada'}), 400
+        tdvs = sorted(data['Tdv'].dropna().unique().tolist())
+        return jsonify({'tdvs': tdvs})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/report/<date>', methods=['GET'])
 @login_required
 def get_report(date):
@@ -150,7 +176,7 @@ def get_tdv_report(date):
     try:
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
         if 'Tdv' not in data.columns:
-            return jsonify({'error': 'Coluna TDV não encontrada'}), 400
+            return jsonify({'error': 'Coluna Tdv não encontrada'}), 400
         report = data.groupby('Tdv').size().to_dict()
         chart_data = {
             'labels': data.groupby('Tdv').size().index.tolist(),
@@ -161,8 +187,9 @@ def get_tdv_report(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/report/<date>/tdv_unidade', methods=['GET'])
+@app.route('/report/<date>/tdv_unidade/<tdv>', methods=['GET'])
 @login_required
-def get_tdv_unidade_report(date):
+def get_tdv_unidade_report(date, tdv=None):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
     
@@ -175,6 +202,13 @@ def get_tdv_unidade_report(date):
         if not all(col in data.columns for col in required_columns):
             missing = [col for col in required_columns if col not in data.columns]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
+        
+        # Filtrar por TDV, se fornecido
+        if tdv and tdv != 'all':
+            data = data[data['Tdv'] == tdv]
+            if data.empty:
+                return jsonify({'report': []}), 200
+        
         report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
         report_data = report.to_dict('records')
         return jsonify({'report': report_data})
@@ -182,8 +216,9 @@ def get_tdv_unidade_report(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/chart/<date>/status_patrimonio', methods=['GET'])
+@app.route('/chart/<date>/status_patrimonio/<unit_filter>', methods=['GET'])
 @login_required
-def get_status_patrimonio_chart(date):
+def get_status_patrimonio_chart(date, unit_filter=None):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
     
@@ -192,8 +227,20 @@ def get_status_patrimonio_chart(date):
     
     try:
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
-        if 'Status Patrimonio' not in data.columns:
-            return jsonify({'error': 'Coluna Status Patrimonio não encontrada'}), 400
+        if 'Status Patrimonio' not in data.columns or 'Unidade' not in data.columns:
+            missing = ['Status Patrimonio' if 'Status Patrimonio' not in data.columns else '', 'Unidade' if 'Unidade' not in data.columns else '']
+            missing = [m for m in missing if m]
+            return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
+        
+        # Aplicar filtro de unidades
+        if unit_filter == 'elos':
+            data = data[data['Unidade'].isin(ELOS_SISTRAN)]
+        elif unit_filter == 'extras':
+            data = data[~data['Unidade'].isin(ELOS_SISTRAN)]
+        
+        if data.empty:
+            return jsonify({'chart': {'labels': [], 'values': []}}), 200
+        
         chart_data = {
             'labels': data.groupby('Status Patrimonio').size().index.tolist(),
             'values': [int(x) for x in data.groupby('Status Patrimonio').size().values.tolist()]  # Converter int64 para int
@@ -203,8 +250,9 @@ def get_status_patrimonio_chart(date):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/chart/<date>/disponibilidade', methods=['GET'])
+@app.route('/chart/<date>/disponibilidade/<unit_filter>', methods=['GET'])
 @login_required
-def get_disponibilidade_chart(date):
+def get_disponibilidade_chart(date, unit_filter=None):
     collection_name = f'veiculos_{date.replace("-", "_")}'
     collection = db[collection_name]
     
@@ -218,8 +266,17 @@ def get_disponibilidade_chart(date):
             missing = [m for m in missing if m]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
         
+        # Aplicar filtro de unidades
+        if unit_filter == 'elos':
+            data = data[data['Unidade'].isin(ELOS_SISTRAN)]
+        elif unit_filter == 'extras':
+            data = data[~data['Unidade'].isin(ELOS_SISTRAN)]
+        
+        if data.empty:
+            return jsonify({'chart': {'labels': [], 'datasets': [{'label': 'Disponível', 'data': []}, {'label': 'Indisponível', 'data': []}]}}), 200
+        
         # Log para depuração
-        print("Valores únicos em Unidade:", data['Unidade'].unique().tolist())
+        print("Valores únicos em Unidade após filtro:", data['Unidade'].unique().tolist())
         
         # Definir categorias
         disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']

@@ -19,7 +19,6 @@
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('home')">Início</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('disponibilidade')">Disponibilidade</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
             <a href="/logout" class="block py-2 px-4 hover:bg-blue-700">Sair</a>
         </nav>
@@ -53,6 +52,9 @@
                         <option value="tdv_unidade">TDV/Unidade</option>
                     </select>
                     <select id="dateSelect" class="p-2 border rounded"></select>
+                    <select id="tdvFilter" class="p-2 border rounded hidden">
+                        <option value="all">Todos os TDVs</option>
+                    </select>
                     <button onclick="loadReport()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Relatório</button>
                 </div>
             </div>
@@ -79,29 +81,20 @@
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
                     <select id="chartType" class="p-2 border rounded">
                         <option value="status_patrimonio">Status Patrimônio</option>
+                        <option value="disponibilidade">Disponibilidade</option>
                     </select>
                     <select id="chartDateSelect" class="p-2 border rounded"></select>
+                    <select id="unitFilter" class="p-2 border rounded">
+                        <option value="all">Todas as Unidades</option>
+                        <option value="elos">Elos do SISTRAN</option>
+                        <option value="extras">Extras</option>
+                    </select>
                     <button onclick="loadChart()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Gráfico</button>
                 </div>
             </div>
             <div id="chartContent" class="hidden">
-                <h3 class="text-xl font-semibold mb-2">Gráfico de Status Patrimônio</h3>
-                <canvas id="statusChart" class="max-w-lg"></canvas>
-            </div>
-        </section>
-
-        <!-- Seção de Disponibilidade -->
-        <section id="disponibilidade" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Disponibilidade por Data</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <select id="disponibilidadeDateSelect" class="p-2 border rounded"></select>
-                    <button onclick="loadDisponibilidade()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Carregar Disponibilidade</button>
-                </div>
-            </div>
-            <div id="disponibilidadeContent" class="hidden">
-                <h3 class="text-xl font-semibold mb-2">Disponibilidade da Frota</h3>
-                <canvas id="disponibilidadeChart" class="max-w-lg"></canvas>
+                <h3 id="chartTitle" class="text-xl font-semibold mb-2"></h3>
+                <canvas id="chartCanvas" class="max-w-lg"></canvas>
             </div>
         </section>
 
@@ -138,9 +131,6 @@
             } else if (sectionId === 'charts') {
                 loadDates('chartDateSelect'); // Carregar datas para gráficos
                 document.getElementById('chartContent').classList.add('hidden');
-            } else if (sectionId === 'disponibilidade') {
-                loadDates('disponibilidadeDateSelect'); // Carregar datas para disponibilidade
-                document.getElementById('disponibilidadeContent').classList.add('hidden');
             }
         }
 
@@ -175,10 +165,46 @@
                 });
         }
 
+        // Carregar TDVs disponíveis para o filtro
+        function loadTdvs(date) {
+            const tdvFilter = document.getElementById('tdvFilter');
+            tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
+            if (!date) return;
+            
+            fetch(`/tdvs/${date}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Erro ao carregar TDVs:', data.error);
+                        return;
+                    }
+                    data.tdvs.forEach(tdv => {
+                        const option = document.createElement('option');
+                        option.value = tdv;
+                        option.textContent = tdv;
+                        tdvFilter.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar TDVs:', error);
+                });
+        }
+
         // Carregar relatório
         function loadReport() {
             const type = document.getElementById('reportType').value;
             const date = document.getElementById('dateSelect').value;
+            const tdvFilter = document.getElementById('tdvFilter');
+            const tdv = tdvFilter.value;
+            
+            // Mostrar/esconder filtro de TDV
+            tdvFilter.classList.toggle('hidden', type !== 'tdv_unidade');
+            if (type === 'tdv_unidade') {
+                loadTdvs(date);
+            } else {
+                tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
+            }
+
             if (!date) {
                 alert('Selecione uma data');
                 return;
@@ -193,8 +219,8 @@
                 url = `/report/${date}/tdv`;
                 title = 'Relatório de TDV';
             } else if (type === 'tdv_unidade') {
-                url = `/report/${date}/tdv_unidade`;
-                title = 'Relatório de TDV/Unidade';
+                url = tdv === 'all' ? `/report/${date}/tdv_unidade` : `/report/${date}/tdv_unidade/${tdv}`;
+                title = `Relatório de TDV/Unidade${tdv !== 'all' ? ` - ${tdv}` : ''}`;
             } else {
                 alert('Tipo de relatório inválido');
                 return;
@@ -238,52 +264,44 @@
         function loadChart() {
             const type = document.getElementById('chartType').value;
             const date = document.getElementById('chartDateSelect').value;
+            const unitFilter = document.getElementById('unitFilter').value;
             if (!date) {
                 alert('Selecione uma data');
                 return;
             }
 
+            let url;
+            let title;
             if (type === 'status_patrimonio') {
-                fetch(`/chart/${date}/status_patrimonio`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.error) {
-                            console.error('Erro ao carregar gráfico:', data.error);
-                            alert('Erro ao carregar gráfico: ' + data.error);
-                            return;
-                        }
-                        updateStatusChart(data.chart);
-                        document.getElementById('chartContent').classList.remove('hidden');
-                    })
-                    .catch(error => {
-                        console.error('Erro ao carregar gráfico:', error);
-                        alert('Erro ao carregar gráfico');
-                    });
-            }
-        }
-
-        // Carregar disponibilidade
-        function loadDisponibilidade() {
-            const date = document.getElementById('disponibilidadeDateSelect').value;
-            if (!date) {
-                alert('Selecione uma data');
+                url = unitFilter === 'all' ? `/chart/${date}/status_patrimonio` : `/chart/${date}/status_patrimonio/${unitFilter}`;
+                title = `Gráfico de Status Patrimônio${unitFilter !== 'all' ? ` - ${unitFilter === 'elos' ? 'Elos do SISTRAN' : 'Extras'}` : ''}`;
+            } else if (type === 'disponibilidade') {
+                url = unitFilter === 'all' ? `/chart/${date}/disponibilidade` : `/chart/${date}/disponibilidade/${unitFilter}`;
+                title = `Gráfico de Disponibilidade${unitFilter !== 'all' ? ` - ${unitFilter === 'elos' ? 'Elos do SISTRAN' : 'Extras'}` : ''}`;
+            } else {
+                alert('Tipo de gráfico inválido');
                 return;
             }
 
-            fetch(`/chart/${date}/disponibilidade`)
+            fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        console.error('Erro ao carregar disponibilidade:', data.error);
-                        alert('Erro ao carregar disponibilidade: ' + data.error);
+                        console.error('Erro ao carregar gráfico:', data.error);
+                        alert('Erro ao carregar gráfico: ' + data.error);
                         return;
                     }
-                    updateDisponibilidadeChart(data.chart);
-                    document.getElementById('disponibilidadeContent').classList.remove('hidden');
+                    if (type === 'status_patrimonio') {
+                        updateStatusChart(data.chart);
+                    } else if (type === 'disponibilidade') {
+                        updateDisponibilidadeChart(data.chart);
+                    }
+                    document.getElementById('chartTitle').textContent = title;
+                    document.getElementById('chartContent').classList.remove('hidden');
                 })
                 .catch(error => {
-                    console.error('Erro ao carregar disponibilidade:', error);
-                    alert('Erro ao carregar disponibilidade');
+                    console.error('Erro ao carregar gráfico:', error);
+                    alert('Erro ao carregar gráfico');
                 });
         }
 
@@ -437,21 +455,21 @@
         }
 
         // Atualizar gráfico de Status Patrimônio (Pizza)
-        let statusChartInstance = null;
+        let chartInstance = null;
         function updateStatusChart(chartData) {
-            const ctx = document.getElementById('statusChart').getContext('2d');
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
             if (!chartData || !chartData.labels || !chartData.values) {
                 console.error('Dados do gráfico inválidos:', chartData);
                 alert('Erro: Dados do gráfico inválidos');
                 return;
             }
-            if (statusChartInstance) {
-                statusChartInstance.destroy();
+            if (chartInstance) {
+                chartInstance.destroy();
             }
             // Calcular total para porcentagens
             const total = chartData.values.reduce((sum, val) => sum + val, 0);
             const percentages = chartData.values.map(val => ((val / total) * 100).toFixed(1));
-            statusChartInstance = new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: chartData.labels.map((label, index) => `${label} (${percentages[index]}%, ${chartData.values[index]})`),
@@ -493,18 +511,17 @@
         }
 
         // Atualizar gráfico de Disponibilidade
-        let disponibilidadeChartInstance = null;
         function updateDisponibilidadeChart(chartData) {
-            const ctx = document.getElementById('disponibilidadeChart').getContext('2d');
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
             if (!chartData || !chartData.labels || !chartData.datasets) {
                 console.error('Dados do gráfico inválidos:', chartData);
                 alert('Erro: Dados do gráfico inválidos');
                 return;
             }
-            if (disponibilidadeChartInstance) {
-                disponibilidadeChartInstance.destroy();
+            if (chartInstance) {
+                chartInstance.destroy();
             }
-            disponibilidadeChartInstance = new Chart(ctx, {
+            chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: chartData,
                 options: {
