@@ -20,7 +20,6 @@
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('reports')">Relatórios</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('charts')">Gráficos</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('disponibilidade')">Disponibilidade</a>
-            <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('upload')">Upload</a>
             <a href="#" class="block py-2 px-4 hover:bg-blue-700" onclick="showSection('about')">Sobre</a>
             <a href="/logout" class="block py-2 px-4 hover:bg-blue-700">Sair</a>
         </nav>
@@ -103,18 +102,6 @@
             <div id="disponibilidadeContent" class="hidden">
                 <h3 class="text-xl font-semibold mb-2">Disponibilidade da Frota</h3>
                 <canvas id="disponibilidadeChart" class="max-w-lg"></canvas>
-            </div>
-        </section>
-
-        <!-- Seção de Upload -->
-        <section id="upload" class="hidden">
-            <h2 class="text-2xl font-bold mb-4">Upload de Planilha</h2>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <form id="uploadForm" enctype="multipart/form-data">
-                    <input type="file" name="file" accept=".xlsx" class="p-2 border rounded mb-4">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Enviar</button>
-                </form>
-                <p id="uploadMessage" class="mt-4 hidden"></p>
             </div>
         </section>
 
@@ -461,10 +448,13 @@
             if (statusChartInstance) {
                 statusChartInstance.destroy();
             }
+            // Calcular total para porcentagens
+            const total = chartData.values.reduce((sum, val) => sum + val, 0);
+            const percentages = chartData.values.map(val => ((val / total) * 100).toFixed(1));
             statusChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: chartData.labels,
+                    labels: chartData.labels.map((label, index) => `${label} (${percentages[index]}%, ${chartData.values[index]})`),
                     datasets: [{
                         label: 'Quantidade por Status Patrimônio',
                         data: chartData.values,
@@ -490,7 +480,12 @@
                 options: {
                     plugins: {
                         legend: {
-                            position: 'top'
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                }
+                            }
                         }
                     }
                 }
@@ -526,36 +521,6 @@
                 }
             });
         }
-
-        // Manipular upload de planilha
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            fetch('/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                const message = document.getElementById('uploadMessage');
-                if (data.error) {
-                    message.textContent = 'Erro: ' + data.error;
-                    message.classList.add('text-red-500');
-                } else {
-                    message.textContent = 'Upload concluído! Relatório gerado.';
-                    message.classList.add('text-green-500');
-                    loadDates('dateSelect');
-                    loadDates('chartDateSelect');
-                    loadDates('disponibilidadeDateSelect');
-                }
-                message.classList.remove('hidden');
-            })
-            .catch(error => {
-                document.getElementById('uploadMessage').textContent = 'Erro ao enviar arquivo';
-                document.getElementById('uploadMessage').classList.add('text-red-500');
-                document.getElementById('uploadMessage').classList.remove('hidden');
-            });
-        });
 
         // Mostrar tela inicial por padrão
         showSection('home');

@@ -1,10 +1,10 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user  # type: ignore
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
 import pandas as pd
-import pymongo # type: ignore
+import pymongo
 import os
-import bcrypt # type: ignore
+import bcrypt
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
@@ -217,30 +217,53 @@ def get_disponibilidade_chart(date):
             missing = ['Unidade' if 'Unidade' not in data.columns else '', 'Status Patrimonio' if 'Status Patrimonio' not in data.columns else '']
             missing = [m for m in missing if m]
             return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
+        
+        # Log para depuração
+        print("Valores únicos em Unidade:", data['Unidade'].unique().tolist())
+        
+        # Definir categorias
         disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']
         indisponiveis = ['A Alienar', 'Em Reparo', 'A Reparar', 'Inativo']
-        grouped = data.groupby(['Unidade', 'Status Patrimonio']).size().unstack(fill_value=0)
+        
+        # Criar coluna para categorizar status
+        data['Categoria'] = data['Status Patrimonio'].apply(
+            lambda x: 'Disponível' if x in disponiveis else 'Indisponível' if x in indisponiveis else 'Outros'
+        )
+        
+        # Agrupar por Unidade e Categoria
+        grouped = data.groupby(['Unidade', 'Categoria']).size().unstack(fill_value=0)
+        
+        # Garantir que Disponível e Indisponível existam
+        if 'Disponível' not in grouped.columns:
+            grouped['Disponível'] = 0
+        if 'Indisponível' not in grouped.columns:
+            grouped['Indisponível'] = 0
+            
+        # Log para depuração
+        print("Dados agrupados:", grouped.to_dict())
+        
         chart_data = {
             'labels': grouped.index.tolist(),
             'datasets': [
                 {
                     'label': 'Disponível',
-                    'data': [int(grouped[status].sum()) if status in grouped.columns else 0 for status in disponiveis],  # Converter int64 para int
-                    'backgroundColor': 'rgba(37, 99, 235, 0.2)',
-                    'borderColor': 'rgba(37, 99, 235, 1)',
+                    'data': [int(x) for x in grouped['Disponível'].tolist()],  # Converter int64 para int
+                    'backgroundColor': 'rgba(34, 197, 94, 0.6)',
+                    'borderColor': 'rgba(34, 197, 94, 1)',
                     'borderWidth': 1
                 },
                 {
                     'label': 'Indisponível',
-                    'data': [int(grouped[status].sum()) if status in grouped.columns else 0 for status in indisponiveis],  # Converter int64 para int
-                    'backgroundColor': 'rgba(255, 165, 0, 0.2)',
-                    'borderColor': 'rgba(255, 165, 0, 1)',
+                    'data': [int(x) for x in grouped['Indisponível'].tolist()],  # Converter int64 para int
+                    'backgroundColor': 'rgba(255, 99, 132, 0.6)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
                     'borderWidth': 1
                 }
             ]
         }
         return jsonify({'chart': chart_data})
     except Exception as e:
+        print("Erro na rota /disponibilidade:", str(e))
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
