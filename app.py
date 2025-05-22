@@ -30,7 +30,7 @@ class User(UserMixin):
 # Usuários com senhas hasheadas
 users = {
     'admin': bcrypt.hashpw('a315saex'.encode('utf-8'), bcrypt.gensalt()),
-    'sistran': bcrypt.hashpw('diradsistran'.encode('utf-8'), bcrypt.gensalt()),
+    'sistran': bcrypt.hashpw('sistran'.encode('utf-8'), bcrypt.gensalt()),
     'user2': bcrypt.hashpw('senha789564'.encode('utf-8'), bcrypt.gensalt())
 }
 
