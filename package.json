@@ -1,16 +1,10 @@
 {
   "name": "analise-veiculos",
   "version": "1.0.0",
-  "description": "Análise de dados de viaturas",
   "scripts": {
-    "build:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --minify",
-    "watch:css": "tailwindcss -i ./src/input.css -o ./public/styles.css --watch"
+    "build": "npx tailwindcss -i ./src/input.css -o ./public/css/styles.css --minify"
   },
-  "main": "tailwind.config.js",
   "devDependencies": {
-    "tailwindcss": "^4.1.7"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+    "tailwindcss": "^3.3.0"
+  }
 }
