@@ -34,21 +34,21 @@ ELOS_SISTRAN = [
     'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW'
 ]
 
-@login_manager.user_loader
-def load_user(user_id):
-    user = db.users.find_one({'username': user_id})
-    return User(user_id) if user else None
-
-# Função para verificar credenciais
+# Função para verificar credenciais (disponível globalmente)
 def verify_password(username, password):
     user = db.users.find_one({'username': username})
     if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash']):
         return True
     return False
 
-# Função para registrar os Blueprints (assumindo que login_bp usa verify_password)
+@login_manager.user_loader
+def load_user(user_id):
+    user = db.users.find_one({'username': user_id})
+    return User(user_id) if user else None
+
+# Registro dos Blueprints (carregamento tardio para evitar circularidade)
 def register_blueprints():
-    from routes.login import login_bp
+    from routes.login import login_bp, init_login
     from routes.logout import logout_bp
     from routes.index import index_bp
     from routes.upload import upload_bp
@@ -59,6 +59,9 @@ def register_blueprints():
     from routes.tdv_unidade_report import tdv_unidade_report_bp
     from routes.status_patrimonio_chart import status_patrimonio_chart_bp
     from routes.disponibilidade_chart import disponibilidade_chart_bp
+
+    # Inicializar o blueprint login
+    init_login(app)  # Passa o app para inicializar o blueprint
 
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
@@ -72,7 +75,7 @@ def register_blueprints():
     app.register_blueprint(status_patrimonio_chart_bp)
     app.register_blueprint(disponibilidade_chart_bp)
 
-# Registrar os Blueprints após a inicialização do app
+# Registrar os Blueprints após a inicialização
 register_blueprints()
 
 if __name__ == '__main__':
