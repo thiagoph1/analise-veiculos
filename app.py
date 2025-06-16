@@ -19,7 +19,7 @@ mongo_uri = os.environ.get('MONGO_URI')
 if not mongo_uri:
     raise ValueError("MONGO_URI não configurado nas variáveis de ambiente")
 client = pymongo.MongoClient(mongo_uri)
-db = client['veiculos_db']
+db = client['usuarios']  # Alterado para o novo banco 'usuarios'
 
 # Modelo de usuário
 class User(UserMixin):
