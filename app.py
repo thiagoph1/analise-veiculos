@@ -1,54 +1,23 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
-import pymongo
+from flask_login import LoginManager
 import os
-import bcrypt
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
-CORS(app, resources={r"/*": {"origins": ["https://analise-veiculos.onrender.com/", "http://localhost:8000"]}})  # Atualize com o domínio do Render
+CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login.login'
 
-# Conectar ao MongoDB Atlas
-mongo_uri = os.environ.get('MONGO_URI')
-if not mongo_uri:
-    raise ValueError("MONGO_URI não configurado nas variáveis de ambiente")
-client = pymongo.MongoClient(mongo_uri)
-db = client['usuarios']  # Alterado para o novo banco 'usuarios'
+# Importar funções de autenticação de auth.py
+from routes.auth import load_user, verify_password  # Importação de funções específicas
 
-# Modelo de usuário
-class User(UserMixin):
-    def __init__(self, id):
-        self.id = id
-
-# Lista de unidades "Elos do SISTRAN"
-ELOS_SISTRAN = [
-    'AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV',
-    'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III',
-    'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO',
-    'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW'
-]
-
-# Função para verificar credenciais (disponível globalmente)
-def verify_password(username, password):
-    user = db.users.find_one({'username': username})
-    if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash']):
-        return True
-    return False
-
-@login_manager.user_loader
-def load_user(user_id):
-    user = db.users.find_one({'username': user_id})
-    return User(user_id) if user else None
-
-# Registro dos Blueprints (carregamento tardio para evitar circularidade)
+# Registro dos Blueprints
 def register_blueprints():
-    from routes.login import login_bp, init_login
+    from routes.login import login_bp
     from routes.logout import logout_bp
     from routes.index import index_bp
     from routes.upload import upload_bp
@@ -59,9 +28,6 @@ def register_blueprints():
     from routes.tdv_unidade_report import tdv_unidade_report_bp
     from routes.status_patrimonio_chart import status_patrimonio_chart_bp
     from routes.disponibilidade_chart import disponibilidade_chart_bp
-
-    # Inicializar o blueprint login
-    init_login(app)  # Passa o app para inicializar o blueprint
 
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
