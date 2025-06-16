@@ -160,3 +160,5 @@ cython_debug/
 #.idea/
 
 pycache/ .pyc .DS_Store uploads/.xlsx
+
+.env
