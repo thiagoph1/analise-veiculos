@@ -1,22 +1,21 @@
-from flask import Blueprint, request, render_template, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user
+from app import db, verify_password, User
 
-# Definir o Blueprint
 login_bp = Blueprint('login', __name__)
 
-@login_bp.route('/login', methods=['GET', 'POST'])
+@login_bp.route('/', methods=['GET', 'POST'])
 def login():
-    from app import users, User  # Importar dentro da função
-    import bcrypt
-
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        if not username or not password:
-            return render_template('login.html', error='Usuário e senha são obrigatórios'), 400
-        if username in users and bcrypt.checkpw(password.encode('utf-8'), users[username]):
+        username = request.form['username']
+        password = request.form['password']
+        
+        if verify_password(username, password):
             user = User(username)
             login_user(user)
             return redirect(url_for('index.index'))
-        return render_template('login.html', error='Credenciais inválidas'), 401
-    return render_template('login.html', error=None)
+        else:
+            flash('Usuário ou senha inválidos', 'error')
+            return render_template('login.html', error='Usuário ou senha inválidos')
+
+    return render_template('login.html')

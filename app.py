@@ -26,13 +26,6 @@ class User(UserMixin):
     def __init__(self, id):
         self.id = id
 
-# Usuários com senhas hasheadas
-users = {
-    'admin': bcrypt.hashpw('a315saex'.encode('utf-8'), bcrypt.gensalt()),
-    'sistran': bcrypt.hashpw('sistran'.encode('utf-8'), bcrypt.gensalt()),
-    'user2': bcrypt.hashpw('senha789564'.encode('utf-8'), bcrypt.gensalt())
-}
-
 # Lista de unidades "Elos do SISTRAN"
 ELOS_SISTRAN = [
     'AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV',
@@ -43,9 +36,17 @@ ELOS_SISTRAN = [
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id) if user_id in users else None
+    user = db.users.find_one({'username': user_id})
+    return User(user_id) if user else None
 
-# Função para registrar os Blueprints
+# Função para verificar credenciais
+def verify_password(username, password):
+    user = db.users.find_one({'username': username})
+    if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash']):
+        return True
+    return False
+
+# Função para registrar os Blueprints (assumindo que login_bp usa verify_password)
 def register_blueprints():
     from routes.login import login_bp
     from routes.logout import logout_bp
