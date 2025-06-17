@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from flask_login import login_required
+from flask_login import login_required # type: ignore
 import pandas as pd
 from routes.auth import get_db  # Importar a função de acesso
 
