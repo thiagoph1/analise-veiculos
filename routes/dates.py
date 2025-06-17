@@ -12,7 +12,6 @@ def get_dates():
         collections = db.list_collection_names()
         dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
         dates.sort(reverse=True)
-        print(f"Datas encontradas: {dates}")  # Depuração
         return jsonify({'dates': dates})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
