@@ -4,6 +4,7 @@ from flask_login import LoginManager
 import os
 
 app = Flask(__name__, static_folder='public', static_url_path='')
+app.template_folder = 'public/templates'  # Define explicitamente o diretório de templates
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
 CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
 
