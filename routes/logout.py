@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, url_for
-from flask_login import logout_user, login_required
+from flask_login import logout_user, login_required # type: ignore
 
 # Definir o Blueprint
 logout_bp = Blueprint('logout', __name__)

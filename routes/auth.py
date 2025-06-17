@@ -1,7 +1,7 @@
-from flask_login import UserMixin
-import pymongo
-from bson.binary import Binary
-import bcrypt
+from flask_login import UserMixin # type: ignore
+import pymongo # type: ignore
+from bson.binary import Binary # type: ignore
+import bcrypt # type: ignore
 import os
 
 # Conectar ao MongoDB (usando a URI do ambiente)

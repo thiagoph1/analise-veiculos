@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_user, current_user
+from flask_login import login_user, current_user # type: ignore
 from routes.auth import User, verify_password  # Importar de auth.py
 
 login_bp = Blueprint('login', __name__)
