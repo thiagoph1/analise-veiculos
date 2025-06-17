@@ -1,20 +1,18 @@
 from flask import Blueprint, jsonify
 from flask_login import login_required
 import pandas as pd
+from routes.auth import get_db  # Importar a função de acesso
 
-# Definir o Blueprint
 tdv_unidade_report_bp = Blueprint('tdv_unidade_report', __name__)
 
 @tdv_unidade_report_bp.route('/report/<date>/tdv_unidade', methods=['GET'])
 @tdv_unidade_report_bp.route('/report/<date>/tdv_unidade/<tdv>', methods=['GET'])
 @login_required
 def get_tdv_unidade_report(date, tdv=None):
-    from app import db  # Importar dentro da função
-
     collection_name = f'veiculos_{date.replace("-", "_")}'
-    collection = db[collection_name]
+    collection = get_db('veiculos_db')[collection_name]
     
-    if collection_name not in db.list_collection_names():
+    if collection_name not in get_db('veiculos_db').list_collection_names():
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
