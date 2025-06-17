@@ -1,0 +1,2 @@
+# Definir constante ELOS_SISTRAN (ajuste conforme necessário)
+ELOS_SISTRAN = ["AFA", "BAAN", "BABV", "BACG", "BAFL", "BAFZ", "BANT", "BAPV", "BASC", "BASM", "BASV", "CISCEA", "CLA", "COMARA", "CPBV-CC", "CRCEA-SE", "DACTA I", "DACTA II", "DACTA III", "DACTA IV", "DECEA", "EEAR", "EPCAR", "GABAER", "GAP-AF", "GAP-BE", "GAP-BR", "GAP-CO", "GAP-DF", "GAP-GL", "GAP-LS", "GAP-MN", "GAP-RF", "GAP-RJ", "GAP-SJ", "GAP-SP", "ICEA", "PAME", "CABE", "CABW"]  # Substitua pelas unidades corretas

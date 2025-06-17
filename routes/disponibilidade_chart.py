@@ -1,7 +1,7 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify
 from flask_login import login_required
+import pandas as pd
 from routes.auth import get_db  # Importar a função de acesso
-from app import ELOS_SISTRAN  # Importar a constante de app.py
 
 disponibilidade_chart_bp = Blueprint('disponibilidade_chart', __name__)
 
@@ -9,42 +9,76 @@ disponibilidade_chart_bp = Blueprint('disponibilidade_chart', __name__)
 @disponibilidade_chart_bp.route('/chart/<date>/disponibilidade/<unit_filter>', methods=['GET'])
 @login_required
 def get_disponibilidade_chart(date, unit_filter=None):
+    from app import ELOS_SISTRAN  # Importar dentro da função para evitar ciclo
+    
+    collection_name = f'veiculos_{date.replace("-", "_")}'  # Ex.: veiculos_2025_06_13
+    collection = get_db('veiculos_db')[collection_name]
+
+    if collection_name not in get_db('veiculos_db').list_collection_names():
+        return jsonify({'error': 'Data não encontrada'}), 404
+
     try:
-        db = get_db('veiculos_db')  # Acessar o banco veiculos_db
-        collection_name = f'veiculos_{date.replace("-", "_")}'  # Ex.: veiculos_2025_05_12
-        collection = db[collection_name]
+        data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
+        if 'Unidade' not in data.columns or 'Status Patrimonio' not in data.columns:
+            missing = ['Unidade' if 'Unidade' not in data.columns else '', 'Status Patrimonio' if 'Status Patrimonio' not in data.columns else '']
+            missing = [m for m in missing if m]
+            return jsonify({'error': f'Colunas ausentes: {missing}'}), 400
 
-        # Filtro de unidade
-        unit_filter = unit_filter if unit_filter else 'all'
-        if unit_filter != 'all' and unit_filter not in ELOS_SISTRAN + ['extras']:
-            return jsonify({'error': 'Filtro de unidade inválido'}), 400
-
-        # Consultar dados (exemplo: contar veículos disponíveis e indisponíveis)
-        pipeline = [
-            {'$match': {'Ativo': 'S'}},  # Filtrar veículos ativos
-            {'$group': {
-                '_id': '$Status Patrimonio',
-                'count': {'$sum': 1}
-            }}
-        ]
-        if unit_filter == 'all':
-            results = collection.aggregate(pipeline)
-        elif unit_filter == 'elos':
-            results = collection.aggregate(pipeline + [{'$match': {'Unidade': {'$in': ELOS_SISTRAN}}}])
+        # Aplicar filtro de unidades
+        if unit_filter == 'elos':
+            data = data[data['Unidade'].isin(ELOS_SISTRAN)]
         elif unit_filter == 'extras':
-            results = collection.aggregate(pipeline + [{'$match': {'Unidade': {'$nin': ELOS_SISTRAN}}}])
+            data = data[~data['Unidade'].isin(ELOS_SISTRAN)]
 
-        chart_data = {'labels': [], 'datasets': [{'data': [], 'label': 'Disponível'}, {'data': [], 'label': 'Indisponível'}]}
-        for result in results:
-            status = result['_id']
-            count = result['count']
-            if status in ['Em Uso', 'Disponível']:  # Ajuste conforme os valores reais
-                chart_data['datasets'][0]['data'].append(count)
-                chart_data['labels'].append(status)
-            else:
-                chart_data['datasets'][1]['data'].append(count)
-                chart_data['labels'].append(status)
+        if data.empty:
+            return jsonify({'chart': {'labels': [], 'datasets': [{'label': 'Disponível', 'data': []}, {'label': 'Indisponível', 'data': []}]}}), 200
 
+        # Definir categorias
+        disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']
+        indisponiveis = ['A Alienar', 'Em Reparo', 'A Reparar', 'Inativo']
+
+        # Criar coluna para categorizar status
+        data['Categoria'] = data['Status Patrimonio'].apply(
+            lambda x: 'Disponível' if x in disponiveis else 'Indisponível' if x in indisponiveis else 'Outros'
+        )
+
+        # Agrupar por Unidade e Categoria
+        grouped = data.groupby(['Unidade', 'Categoria']).size().unstack(fill_value=0)
+
+        # Garantir que Disponível e Indisponível existam
+        if 'Disponível' not in grouped.columns:
+            grouped['Disponível'] = 0
+        if 'Indisponível' not in grouped.columns:
+            grouped['Indisponível'] = 0
+
+        # Calcular total por unidade (Disponível + Indisponível)
+        grouped['Total'] = grouped['Disponível'] + grouped['Indisponível']
+
+        # Ordenar por Total em ordem decrescente
+        grouped = grouped.sort_values('Total', ascending=False)
+
+        # Remover coluna Total para evitar interferência no gráfico
+        grouped = grouped.drop(columns=['Total'])
+
+        chart_data = {
+            'labels': grouped.index.tolist(),
+            'datasets': [
+                {
+                    'label': 'Disponível',
+                    'data': [int(x) for x in grouped['Disponível'].tolist()],  # Converter int64 para int
+                    'backgroundColor': 'rgba(34, 197, 94, 0.6)',
+                    'borderColor': 'rgba(34, 197, 94, 1)',
+                    'borderWidth': 1
+                },
+                {
+                    'label': 'Indisponível',
+                    'data': [int(x) for x in grouped['Indisponível'].tolist()],  # Converter int64 para int
+                    'backgroundColor': 'rgba(255, 99, 132, 0.6)',
+                    'borderColor': 'rgba(255, 99, 132, 1)',
+                    'borderWidth': 1
+                }
+            ]
+        }
         return jsonify({'chart': chart_data})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
