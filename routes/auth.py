@@ -1,5 +1,6 @@
 from flask_login import UserMixin
 import pymongo
+from bson.binary import Binary  # Importar de bson.binary
 import bcrypt
 import os
 
@@ -21,7 +22,7 @@ def verify_password(username, password):
     if user:
         password_hash = user['password_hash']
         print(f"Hash encontrado para {username}: {password_hash}")  # Depuração
-        if isinstance(password_hash, pymongo.binary.Binary):
+        if isinstance(password_hash, Binary):  # Usar bson.binary.Binary
             password_hash = password_hash.to_python()  # Converter Binary para bytes
             print(f"Hash convertido: {password_hash}")  # Depuração
         if bcrypt.checkpw(password.encode('utf-8'), password_hash):

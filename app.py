@@ -16,6 +16,9 @@ login_manager.login_view = 'login.login'
 # Importar funções de autenticação de auth.py
 from routes.auth import load_user, verify_password  # Importação de funções específicas
 
+# Configurar o user_loader do Flask-Login
+login_manager.user_loader(load_user)
+
 # Registro dos Blueprints
 def register_blueprints():
     from routes.login import login_bp
