@@ -6,7 +6,13 @@ import os
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.template_folder = 'public/templates'  # Define explicitamente o diretório de templates
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
-CORS(app, resources={r"/*": {"origins": ["https://analise-veiculos.onrender.com/", "http://localhost:8000"]}})  # Atualize com o domínio do Render
+CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
+
+# Definir constante ELOS_SISTRAN (ajuste conforme necessário)
+ELOS_SISTRAN = ['AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV',
+    'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III',
+    'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO',
+    'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW']  # Substitua pelas unidades corretas
 
 # Configuração do Flask-Login
 login_manager = LoginManager()

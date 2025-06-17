@@ -1,15 +1,18 @@
 from flask import Blueprint, jsonify
+from flask_login import login_required
 from routes.auth import get_db  # Importar a função de acesso
-from datetime import datetime
 
 dates_bp = Blueprint('dates', __name__)
 
 @dates_bp.route('/dates', methods=['GET'])
+@login_required
 def get_dates():
-    db = get_db('veiculos_db')  # Acessar o banco veiculos_db
-    # Consultar valores únicos do campo "Data insert" na coleção veiculos
-    dates = db.veiculos.distinct('Data insert')  # Ajuste 'veiculos' se o nome for diferente
-    # Filtrar e formatar as datas (remover valores nulos e converter para string)
-    date_list = [date for date in dates if date and isinstance(date, str)]
-    print(f"Datas encontradas: {date_list}")  # Depuração
-    return jsonify(date_list)
+    try:
+        db = get_db('veiculos_db')  # Acessar o banco veiculos_db
+        collections = db.list_collection_names()
+        dates = [col.replace('veiculos_', '').replace('_', '-') for col in collections if col.startswith('veiculos_')]
+        dates.sort(reverse=True)
+        print(f"Datas encontradas: {dates}")  # Depuração
+        return jsonify({'dates': dates})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
