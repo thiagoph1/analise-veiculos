@@ -32,7 +32,12 @@ function toggleSidebar() {
 // Carregar datas disponíveis
 function loadDates(selectId) {
     fetch('/dates')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.error) {
                 console.error('Erro ao carregar datas:', data.error);
@@ -41,12 +46,17 @@ function loadDates(selectId) {
             }
             const dateSelect = document.getElementById(selectId);
             dateSelect.innerHTML = '<option value="">Selecione uma data</option>';
-            data.dates.forEach(date => {
-                const option = document.createElement('option');
-                option.value = date;
-                option.textContent = date;
-                dateSelect.appendChild(option);
-            });
+            if (data.dates && Array.isArray(data.dates)) {
+                data.dates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    dateSelect.appendChild(option);
+                });
+            } else {
+                console.error('Formato de dados inválido:', data);
+                alert('Erro: Formato de dados inválido');
+            }
         })
         .catch(error => {
             console.error('Erro ao carregar datas:', error);

@@ -1,10 +1,10 @@
-from flask import Blueprint, current_app
-from flask_login import login_required
+from flask import Blueprint, render_template
+from flask_login import login_required, current_user
 
-# Definir o Blueprint
-index_bp = Blueprint('index', __name__)
+index_bp = Blueprint('index', __name__)  # Remova url_prefix='/home' aqui
 
-@index_bp.route('/')
+@index_bp.route('/home')  # Defina a rota diretamente
 @login_required
 def index():
-    return current_app.send_static_file('index.html')
+    print(f"Página index carregada para usuário: {current_user.id}")  # Depuração
+    return render_template('index.html')

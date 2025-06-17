@@ -1,6 +1,6 @@
 from flask_login import UserMixin
 import pymongo
-from bson.binary import Binary  # Importar de bson.binary
+from bson.binary import Binary
 import bcrypt
 import os
 
@@ -9,7 +9,19 @@ mongo_uri = os.environ.get('MONGO_URI')
 if not mongo_uri:
     raise ValueError("MONGO_URI não configurado nas variáveis de ambiente")
 client = pymongo.MongoClient(mongo_uri)
-db = client['usuarios']  # Usando o banco 'usuarios'
+
+# Definir conexões para os bancos
+usuarios_db = client['usuarios']
+veiculos_db = client['veiculos_db']
+
+# Função para acessar os bancos de dados
+def get_db(db_name):
+    if db_name == 'usuarios':
+        return usuarios_db
+    elif db_name == 'veiculos_db':
+        return veiculos_db
+    else:
+        raise ValueError(f"Banco de dados '{db_name}' não suportado")
 
 # Modelo de usuário
 class User(UserMixin):
@@ -18,11 +30,11 @@ class User(UserMixin):
 
 # Função para verificar credenciais com depuração
 def verify_password(username, password):
-    user = db.users.find_one({'username': username})
+    user = usuarios_db.users.find_one({'username': username})
     if user:
         password_hash = user['password_hash']
         print(f"Hash encontrado para {username}: {password_hash}")  # Depuração
-        if isinstance(password_hash, Binary):  # Usar bson.binary.Binary
+        if isinstance(password_hash, Binary):
             password_hash = password_hash.to_python()  # Converter Binary para bytes
             print(f"Hash convertido: {password_hash}")  # Depuração
         if bcrypt.checkpw(password.encode('utf-8'), password_hash):
@@ -33,7 +45,7 @@ def verify_password(username, password):
 def load_user(user_id):
     print(f"Carregando usuário com ID: {user_id}")  # Depuração
     try:
-        user = db.users.find_one({'username': user_id})
+        user = usuarios_db.users.find_one({'username': user_id})
         if user:
             print(f"Usuário encontrado: {user}")  # Depuração
             return User(user_id)
