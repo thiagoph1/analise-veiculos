@@ -13,7 +13,6 @@ def login():
         if verify_password(username, password):
             user = User(username)
             login_user(user)
-            print(f"Login bem-sucedido para {username}, redirecionando para index.index. Usuário logado: {current_user.is_authenticated}")  # Depuração
             return redirect(url_for('index.index'))
         else:
             flash('Usuário ou senha inválidos', 'error')

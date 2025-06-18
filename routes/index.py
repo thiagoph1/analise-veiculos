@@ -8,7 +8,6 @@ index_bp = Blueprint('index', __name__)  # Blueprint principal
 @index_bp.route('/home')  # Defina a rota diretamente
 @login_required
 def index():
-    print(f"Página index carregada para usuário: {current_user.id}")  # Depuração
     return render_template('index.html')
 
 #Busca das TDV no MongoDB
