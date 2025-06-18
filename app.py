@@ -29,20 +29,14 @@ def register_blueprints():
     from routes.index import index_bp
     from routes.dates import dates_bp
     from routes.tdvs import tdvs_bp
-    from routes.report import report_bp
-    from routes.tdv_report import tdv_report_bp
-    from routes.tdv_unidade_report import tdv_unidade_report_bp
-    from routes.charts import charts_bp  # Novo Blueprint unificado
+    from routes.reports import reports_bp  # Novo Blueprint unificado
 
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
     app.register_blueprint(index_bp)
     app.register_blueprint(dates_bp)
     app.register_blueprint(tdvs_bp)
-    app.register_blueprint(report_bp)
-    app.register_blueprint(tdv_report_bp)
-    app.register_blueprint(tdv_unidade_report_bp)
-    app.register_blueprint(charts_bp)  # Registrar o novo Blueprint
+    app.register_blueprint(reports_bp)  # Registrar o novo Blueprint
 
 # Registrar os Blueprints após a inicialização
 register_blueprints()

@@ -9,13 +9,14 @@ charts_bp = Blueprint('charts', __name__)
 @charts_bp.route('/chart/<date>/disponibilidade/<unit_filter>', methods=['GET'])
 @login_required
 def get_disponibilidade_chart(date, unit_filter=None):
-    from app import ELOS_SISTRAN  # Importar dentro da função para evitar ciclo
-    
+    from app import ELOS_SISTRAN
+    print(f"Requisição para /chart/{date}/disponibilidade/{unit_filter}")  # Depuração
     collection_name = f'veiculos_{date.replace("-", "_")}'  # Ex.: veiculos_2025_06_13
     collection = get_db('veiculos_db')[collection_name]
-
+    print(f"Collection name: {collection_name}, Exists: {collection_name in get_db('veiculos_db').list_collection_names()}")
     if collection_name not in get_db('veiculos_db').list_collection_names():
         return jsonify({'error': 'Data não encontrada'}), 404
+    # Resto do código...
 
     try:
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
