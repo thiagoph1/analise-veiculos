@@ -1,3 +1,4 @@
+
 // Estado da paginação
 let currentPage = 1;
 let rowsPerPage = 10;
@@ -7,41 +8,35 @@ let sortDirection = 'asc';
 
 // Mostrar/Esconder seções
 function showSection(sectionId) {
-    const sections = document.querySelectorAll('section');
-    if (!sections) return;
-    sections.forEach(section => section.classList.add('hidden'));
-    const section = document.getElementById(sectionId);
-    if (section) {
-        section.classList.remove('hidden');
-        if (window.innerWidth < 768) toggleSidebar(); // Fechar menu em mobile
-        if (sectionId === 'reports') {
-            loadDates('dateSelect'); // Carregar datas para relatórios
-            const reportContent = document.getElementById('reportContent');
-            if (reportContent) reportContent.classList.add('hidden');
-        } else if (sectionId === 'charts') {
-            loadDates('chartDateSelect'); // Carregar datas para gráficos
-            const chartContent = document.getElementById('chartContent');
-            if (chartContent) chartContent.classList.add('hidden');
-        }
+    document.querySelectorAll('section').forEach(section => {
+        section.classList.add('hidden');
+    });
+    document.getElementById(sectionId).classList.remove('hidden');
+    if (window.innerWidth < 768) {
+        toggleSidebar(); // Fechar menu em mobile
+    }
+    if (sectionId === 'reports') {
+        loadDates('dateSelect'); // Carregar datas para relatórios
+        document.getElementById('reportContent').classList.add('hidden');
+    } else if (sectionId === 'charts') {
+        loadDates('chartDateSelect'); // Carregar datas para gráficos
+        document.getElementById('chartContent').classList.add('hidden');
     }
 }
 
 // Alternar menu lateral em mobile
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.toggle('open');
+    sidebar.classList.toggle('open');
 }
 
 // Carregar datas disponíveis
 function loadDates(selectId) {
-    const dateSelect = document.getElementById(selectId);
-    if (!dateSelect) {
-        console.error(`Elemento ${selectId} não encontrado`);
-        return;
-    }
     fetch('/dates')
         .then(response => {
-            if (!response.ok) throw new Error(`Erro na resposta do servidor: ${response.status}`);
+            if (!response.ok) {
+                throw new Error('Erro na resposta do servidor');
+            }
             return response.json();
         })
         .then(data => {
@@ -50,6 +45,7 @@ function loadDates(selectId) {
                 alert('Erro ao carregar datas: ' + data.error);
                 return;
             }
+            const dateSelect = document.getElementById(selectId);
             dateSelect.innerHTML = '<option value="">Selecione uma data</option>';
             if (data.dates && Array.isArray(data.dates)) {
                 data.dates.forEach(date => {
@@ -69,24 +65,14 @@ function loadDates(selectId) {
         });
 }
 
-
-
-
 // Carregar TDVs disponíveis para o filtro
 function loadTdvs(date) {
     const tdvFilter = document.getElementById('tdvFilter');
-    if (!tdvFilter) {
-        console.error('Elemento tdvFilter não encontrado');
-        return;
-    }
     tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
     if (!date) return;
     
     fetch(`/tdvs/${date}`)
-        .then(response => {
-            if (!response.ok) throw new Error(`Erro na resposta do servidor: ${response.status}`);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.error) {
                 console.error('Erro ao carregar TDVs:', data.error);
@@ -94,10 +80,8 @@ function loadTdvs(date) {
             }
             data.tdvs.forEach(tdv => {
                 const option = document.createElement('option');
-                option.value = t
-dv;
-                option.textContent = t
-dv;
+                option.value = tdv;
+                option.textContent = tdv;
                 tdvFilter.appendChild(option);
             });
         })
@@ -106,27 +90,24 @@ dv;
         });
 }
 
-
-
-
 // Carregar relatório
 function loadReport() {
-    const type = document.getElementById('reportType')?.value;
-    const date = document.getElementById('dateSelect')?.value;
+    const type = document.getElementById('reportType').value;
+    const date = document.getElementById('dateSelect').value;
     const tdvFilter = document.getElementById('tdvFilter');
-    const tdv = tdvFilter?.value;
-
-    if (!type || !date) {
-        alert('Selecione um tipo de relatório e uma data');
-        return;
+    const tdv = tdvFilter.value;
+    
+    // Mostrar/esconder filtro de TDV
+    tdvFilter.classList.toggle('hidden', type !== 'tdv_unidade');
+    if (type === 'tdv_unidade') {
+        loadTdvs(date);
+    } else {
+        tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
     }
 
-    // Mostrar/esconder filtro de TDV
-    if (tdvFilter) tdvFilter.classList.toggle('hidden', type !== 'tdv_unidade');
-    if (type === 'tdv_unidade' && date) {
-        loadTdvs(date);
-    } else if (tdvFilter) {
-        tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
+    if (!date) {
+        alert('Selecione uma data');
+        return;
     }
 
     let url;
@@ -146,10 +127,7 @@ function loadReport() {
     }
 
     fetch(url)
-        .then(response => {
-            if (!response.ok) throw new Error(`Erro na resposta do servidor: ${response.status}`);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.error) {
                 console.error('Erro ao carregar relatório:', data.error);
@@ -157,30 +135,24 @@ function loadReport() {
                 return;
             }
             if (type === 'tdv_unidade') {
-                reportData = data.report || [];
+                reportData = data.report;
                 currentPage = 1;
                 sortColumn = null;
                 sortDirection = 'asc';
                 updatePaginatedTable();
             } else {
-                updateReportTable(type, data.report || {});
+                updateReportTable(type, data.report);
             }
-            if (type !== 'tdv_unidade' && data.chart) {
+            if (type !== 'tdv_unidade') {
                 updateReportChart(data.chart);
-                const chartTitle = document.getElementById('chartTitle');
-                const reportChart = document.getElementById('reportChart');
-                if (chartTitle) chartTitle.classList.remove('hidden');
-                if (reportChart) reportChart.classList.remove('hidden');
+                document.getElementById('chartTitle').classList.remove('hidden');
+                document.getElementById('reportChart').classList.remove('hidden');
             } else {
-                const chartTitle = document.getElementById('chartTitle');
-                const reportChart = document.getElementById('reportChart');
-                if (chartTitle) chartTitle.classList.add('hidden');
-                if (reportChart) reportChart.classList.add('hidden');
+                document.getElementById('chartTitle').classList.add('hidden');
+                document.getElementById('reportChart').classList.add('hidden');
             }
-            const reportTitle = document.getElementById('reportTitle');
-            if (reportTitle) reportTitle.textContent = title;
-            const reportContent = document.getElementById('reportContent');
-            if (reportContent) reportContent.classList.remove('hidden');
+            document.getElementById('reportTitle').textContent = title;
+            document.getElementById('reportContent').classList.remove('hidden');
         })
         .catch(error => {
             console.error('Erro ao carregar relatório:', error);
@@ -188,15 +160,13 @@ function loadReport() {
         });
 }
 
-
-
-// Carregar gráfico (restante do código segue o mesmo padrão de robustez)
+// Carregar gráfico
 function loadChart() {
-    const type = document.getElementById('chartType')?.value;
-    const date = document.getElementById('chartDateSelect')?.value;
-    const unitFilter = document.getElementById('unitFilter')?.value;
-    if (!type || !date) {
-        alert('Selecione um tipo de gráfico e uma data');
+    const type = document.getElementById('chartType').value;
+    const date = document.getElementById('chartDateSelect').value;
+    const unitFilter = document.getElementById('unitFilter').value;
+    if (!date) {
+        alert('Selecione uma data');
         return;
     }
 
@@ -212,16 +182,9 @@ function loadChart() {
         alert('Tipo de gráfico inválido');
         return;
     }
-    // Ajuste para o contexto do deploy, se necessário
-    url = '/app' + url; // Remova ou ajuste com base no contexto real
-    console.log('URL gerada:', url);
-    console.log('Tipo:', type, 'Data:', date, 'Filtro:', unitFilter);
 
     fetch(url)
-        .then(response => {
-            if (!response.ok) throw new Error(`Erro na resposta do servidor: ${response.status} - ${response.statusText}`);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.error) {
                 console.error('Erro ao carregar gráfico:', data.error);
@@ -233,10 +196,8 @@ function loadChart() {
             } else if (type === 'disponibilidade') {
                 updateDisponibilidadeChart(data.chart);
             }
-            const chartTitle = document.getElementById('chartTitle');
-            if (chartTitle) chartTitle.textContent = title;
-            const chartContent = document.getElementById('chartContent');
-            if (chartContent) chartContent.classList.remove('hidden');
+            document.getElementById('chartTitle').textContent = title;
+            document.getElementById('chartContent').classList.remove('hidden');
         })
         .catch(error => {
             console.error('Erro ao carregar gráfico:', error);
@@ -244,17 +205,16 @@ function loadChart() {
         });
 }
 
-
-// Atualizar tabela de relatório (mantido como original, mas com verificações)
+// Atualizar tabela de relatório
 function updateReportTable(type, report) {
     const thead = document.getElementById('reportTableHead');
     const tbody = document.getElementById('reportTableBody');
-    if (!thead || !tbody) return;
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    document.getElementById('pagination')?.classList.add('hidden');
+    document.getElementById('pagination').classList.add('hidden');
 
     if (type === 'marcas' || type === 'tdv') {
+        // Tabela para Marcas ou TDV
         thead.innerHTML = `
             <tr class="bg-gray-200">
                 <th class="p-2 text-left">${type === 'marcas' ? 'Marca' : 'TDV'}</th>
@@ -275,13 +235,10 @@ function updateReportTable(type, report) {
     }
 }
 
-
-
-// Atualizar tabela paginada para TDV/Unidade (mantido como original, mas com verificações)
+// Atualizar tabela paginada para TDV/Unidade
 function updatePaginatedTable() {
     const thead = document.getElementById('reportTableHead');
     const tbody = document.getElementById('reportTableBody');
-    if (!thead || !tbody) return;
     thead.innerHTML = `
         <tr class="bg-gray-200">
             <th class="p-1 text-left cursor-pointer" onclick="sortTable('Tdv')">TDV</th>
@@ -293,7 +250,7 @@ function updatePaginatedTable() {
 
     if (!reportData || reportData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="3" class="p-1">Nenhum dado disponível</td></tr>';
-        document.getElementById('pagination')?.classList.add('hidden');
+        document.getElementById('pagination').classList.add('hidden');
         return;
     }
 
@@ -304,10 +261,12 @@ function updatePaginatedTable() {
             let valA = a[sortColumn];
             let valB = b[sortColumn];
             if (sortColumn === 'Quantidade') {
-                valA = Number(valA) || 0;
-                valB = Number(valB) || 0;
+                valA = Number(valA);
+                valB = Number(valB);
             }
-            return valA < valB ? (sortDirection === 'asc' ? -1 : 1) : valA > valB ? (sortDirection === 'asc' ? 1 : -1) : 0;
+            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            return 0;
         });
     }
 
@@ -320,28 +279,22 @@ function updatePaginatedTable() {
     paginatedData.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="p-1">${item.Tdv || ''}</td>
-            <td class="p-1">${item.Unidade || ''}</td>
-            <td class="p-1">${item.Quantidade || 0}</td>
+            <td class="p-1">${item.Tdv}</td>
+            <td class="p-1">${item.Unidade}</td>
+            <td class="p-1">${item.Quantidade}</td>
         `;
         tbody.appendChild(row);
     });
 
     // Atualizar paginação
     const totalPages = Math.ceil(reportData.length / rowsPerPage);
-    const pageInfo = document.getElementById('pageInfo');
-    if (pageInfo) pageInfo.textContent = `Página ${currentPage} de ${totalPages}`;
-    const pagination = document.getElementById('pagination');
-    if (pagination) pagination.classList.remove('hidden');
-    const prevButton = document.querySelector('button[onclick="prevPage()"]');
-    const nextButton = document.querySelector('button[onclick="nextPage()"]');
-    if (prevButton) prevButton.disabled = currentPage === 1;
-    if (nextButton) nextButton.disabled = currentPage === totalPages;
+    document.getElementById('pageInfo').textContent = `Página ${currentPage} de ${totalPages}`;
+    document.getElementById('pagination').classList.remove('hidden');
+    document.querySelector('button[onclick="prevPage()"]').disabled = currentPage === 1;
+    document.querySelector('button[onclick="nextPage()"]').disabled = currentPage === totalPages;
 }
 
-
-
-// Funções de paginação (mantidas como original com verificações)
+// Funções de paginação
 function prevPage() {
     if (currentPage > 1) {
         currentPage--;
@@ -357,9 +310,7 @@ function nextPage() {
     }
 }
 
-
-
-// Ordenar tabela (mantida como original)
+// Ordenar tabela
 function sortTable(column) {
     if (sortColumn === column) {
         sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -370,19 +321,19 @@ function sortTable(column) {
     updatePaginatedTable();
 }
 
-
-
 // Atualizar gráfico de relatório (Marcas, TDV)
 let reportChartInstance = null;
 function updateReportChart(chartData) {
-    const ctx = document.getElementById('reportChart')?.getContext('2d');
-    if (!ctx || !chartData || !chartData.labels || !chartData.values) {
+    const ctx = document.getElementById('reportChart').getContext('2d');
+    if (!chartData || !chartData.labels || !chartData.values) {
         console.error('Dados do gráfico inválidos:', chartData);
         alert('Erro: Dados do gráfico inválidos');
         return;
     }
-    if (reportChartInstance) reportChartInstance.destroy();
-    const label = document.getElementById('reportType')?.value === 'marcas' ? 'Quantidade por Marca' : 'Quantidade por TDV';
+    if (reportChartInstance) {
+        reportChartInstance.destroy();
+    }
+    const label = document.getElementById('reportType').value === 'marcas' ? 'Quantidade por Marca' : 'Quantidade por TDV';
     reportChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -396,23 +347,26 @@ function updateReportChart(chartData) {
             }]
         },
         options: {
-            scales: { y: { beginAtZero: true } }
+            scales: {
+                y: { beginAtZero: true }
+            }
         }
     });
 }
 
-
-
 // Atualizar gráfico de Status Patrimônio (Pizza)
 let chartInstance = null;
 function updateStatusChart(chartData) {
-    const ctx = document.getElementById('chartCanvas')?.getContext('2d');
-    if (!ctx || !chartData || !chartData.labels || !chartData.values) {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    if (!chartData || !chartData.labels || !chartData.values) {
         console.error('Dados do gráfico inválidos:', chartData);
         alert('Erro: Dados do gráfico inválidos');
         return;
     }
-    if (chartInstance) chartInstance.destroy();
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+    // Calcular total para porcentagens
     const total = chartData.values.reduce((sum, val) => sum + val, 0);
     const percentages = chartData.values.map(val => ((val / total) * 100).toFixed(1));
     chartInstance = new Chart(ctx, {
@@ -423,56 +377,98 @@ function updateStatusChart(chartData) {
                 label: 'Quantidade por Status Patrimônio',
                 data: chartData.values,
                 backgroundColor: [
-                    'rgba(34, 197, 94, 0.6)', 'rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)',
-                    'rgba(255, 206, 86, 0.6)', 'rgba(75, 192, 192, 0.6)', 'rgba(153, 102, 255, 0.6)'
+                    'rgba(34, 197, 94, 0.6)',
+                    'rgba(255, 99, 132, 0.6)',
+                    'rgba(54, 162, 235, 0.6)',
+                    'rgba(255, 206, 86, 0.6)',
+                    'rgba(75, 192, 192, 0.6)',
+                    'rgba(153, 102, 255, 0.6)'
                 ],
                 borderColor: [
-                    'rgba(34, 197, 94, 1)', 'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)', 'rgba(75, 192, 192, 1)', 'rgba(153, 102, 255, 1)'
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)'
                 ],
                 borderWidth: 1
             }]
         },
         options: {
             plugins: {
-                legend: { position: 'bottom', labels: { font: { size: 12 } } }
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
             }
         }
     });
 }
 
-
-
 // Atualizar gráfico de Disponibilidade
 function updateDisponibilidadeChart(chartData) {
-    const ctx = document.getElementById('chartCanvas')?.getContext('2d');
-    if (!ctx || !chartData || !chartData.labels || !chartData.datasets) {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    if (!chartData || !chartData.labels || !chartData.datasets) {
         console.error('Dados do gráfico inválidos:', chartData);
         alert('Erro: Dados do gráfico inválidos');
         return;
     }
-    if (chartInstance) chartInstance.destroy();
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    // Calcular totais para Disponível e Indisponível
     const totalDisponivel = chartData.datasets[0].data.reduce((sum, val) => sum + val, 0);
     const totalIndisponivel = chartData.datasets[1].data.reduce((sum, val) => sum + val, 0);
+
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: chartData.labels,
             datasets: [
-                { label: `Disponível (${totalDisponivel})`, data: chartData.datasets[0].data, backgroundColor: 'rgba(68, 114, 196, 1)', borderColor: 'rgba(68, 114, 196, 1)', borderWidth: 1 },
-                { label: `Indisponível (${totalIndisponivel})`, data: chartData.datasets[1].data, backgroundColor: 'rgba(237, 125, 49, 1)', borderColor: 'rgba(237, 125, 49, 1)', borderWidth: 1 }
+                {
+                    label: `Disponível (${totalDisponivel})`,
+                    data: chartData.datasets[0].data,
+                    backgroundColor: 'rgba(68, 114, 196, 1)', // Azul para Disponível
+                    borderColor: 'rgba(68, 114, 196, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: `Indisponível (${totalIndisponivel})`,
+                    data: chartData.datasets[1].data,
+                    backgroundColor: 'rgba(237, 125, 49, 1)', // Laranja para Indisponível
+                    borderColor: 'rgba(237, 125, 49, 1)',
+                    borderWidth: 1
+                }
             ]
         },
         options: {
-            scales: { x: { stacked: true }, y: { beginAtZero: true, stacked: true } },
+            scales: {
+                x: { stacked: true },
+                y: { beginAtZero: true, stacked: true }
+            },
             plugins: {
-                title: { display: true, text: 'DISPONIBILIDADE DA FROTA' },
-                legend: { position: 'bottom', labels: { font: { size: 12 } } }
+                title: {
+                    display: true,
+                    text: 'DISPONIBILIDADE DA FROTA'
+                },
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
             }
         }
     });
 }
-
 
 // Mostrar tela inicial por padrão
 document.addEventListener('DOMContentLoaded', () => {

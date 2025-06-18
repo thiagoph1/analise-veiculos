@@ -30,6 +30,7 @@ def register_blueprints():
     from routes.dates import dates_bp
     from routes.tdvs import tdvs_bp
     from routes.reports import reports_bp  # Novo Blueprint unificado
+    from routes.charts import charts_bp  # Adicionar importação do charts_bp
 
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
@@ -37,6 +38,7 @@ def register_blueprints():
     app.register_blueprint(dates_bp)
     app.register_blueprint(tdvs_bp)
     app.register_blueprint(reports_bp)  # Registrar o novo Blueprint
+    app.register_blueprint(charts_bp)  # Registrar o charts_bp
 
 # Registrar os Blueprints após a inicialização
 register_blueprints()
