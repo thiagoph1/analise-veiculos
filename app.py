@@ -27,7 +27,6 @@ def register_blueprints():
     from routes.login import login_bp
     from routes.logout import logout_bp
     from routes.index import index_bp
-    from routes.upload import upload_bp
     from routes.dates import dates_bp
     from routes.tdvs import tdvs_bp
     from routes.report import report_bp
@@ -39,7 +38,6 @@ def register_blueprints():
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
     app.register_blueprint(index_bp)
-    app.register_blueprint(upload_bp)
     app.register_blueprint(dates_bp)
     app.register_blueprint(tdvs_bp)
     app.register_blueprint(report_bp)
