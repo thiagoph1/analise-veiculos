@@ -47,7 +47,8 @@ export function loadTdvs(date) {
             data.tdvs.forEach(tdv => {
                 const option = document.createElement('option');
                 option.value = tdv;
-                option.textContent = tdv;
+                option.textContent = t
+                dv;
                 tdvFilter.appendChild(option);
             });
         })
@@ -56,11 +57,65 @@ export function loadTdvs(date) {
         });
 }
 
+export function loadIdealQuantities(fileInput) {
+    return new Promise((resolve, reject) => {
+        const file = fileInput.files[0];
+        if (!file) {
+            reject(new Error('Nenhum arquivo XLSX selecionado'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const headers = rawData[0]; // ["OM", "P-0", "P-1", ...]
+            const tdvTypes = headers.slice(1); // ["P-0", "P-1", ..., "E-28"]
+            const idealData = [];
+
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                const unidade = row[0];
+                for (let j = 1; j < row.length; j++) {
+                    const quantidade = parseInt(row[j]) || 0;
+                    if (quantidade > 0) {
+                        idealData.push({
+                            Unidade: unidade,
+                            Tdv: tdvTypes[j - 1],
+                            QuantidadeIdeal: quantidade
+                        });
+                    }
+                }
+            }
+            resolve(idealData);
+        };
+        reader.onerror = () => reject(new Error('Erro ao ler o arquivo XLSX'));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+export async function saveIdealToMongoDB(idealData) {
+    try {
+        const response = await fetch('/api/ideal-quantities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(idealData)
+        });
+        if (!response.ok) throw new Error('Erro ao salvar no MongoDB');
+        console.log('Quantidades ideais salvas com sucesso');
+    } catch (error) {
+        console.error('Erro ao salvar no MongoDB:', error);
+        alert('Erro ao salvar quantidades ideais');
+    }
+}
+
 export function loadReport() {
     const type = document.getElementById('reportType').value;
     const date = document.getElementById('dateSelect').value;
     const tdvFilter = document.getElementById('tdvFilter');
     const tdv = tdvFilter.value;
+    const fileInput = document.getElementById('idealFileInput');
     
     tdvFilter.classList.toggle('hidden', type !== 'tdv_unidade');
     if (type === 'tdv_unidade') {
@@ -98,12 +153,19 @@ export function loadReport() {
                 alert('Erro ao carregar relatório: ' + data.error);
                 return;
             }
-            if (type === 'tdv_unidade') {
-                // Importação dinâmica assíncrona
-                import('./pagination.js').then(module => {
-                    module.setReportData(data.report); // Usar a função para atualizar
+            if (type === 'tdv_unidade' && fileInput) {
+                loadIdealQuantities(fileInput).then(idealData => {
+                    saveIdealToMongoDB(idealData); // Salva no MongoDB
+                    import('./pagination.js').then(module => {
+                        module.setReportData(data.report);
+                        module.idealQuantities = idealData; // Armazena os dados ideais
+                        module.updatePaginatedTable();
+                    }).catch(err => {
+                        console.error('Erro ao importar pagination.js:', err);
+                    });
                 }).catch(err => {
-                    console.error('Erro ao importar pagination.js:', err);
+                    console.error('Erro ao carregar quantidades ideais:', err);
+                    alert('Erro ao carregar quantidades ideais: ' + err.message);
                 });
             } else {
                 updateReportTable(type, data.report);
