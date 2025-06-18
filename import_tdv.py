@@ -12,13 +12,13 @@ mongo_uri = os.environ.get('MONGO_URI')
 if not mongo_uri:
     raise ValueError("MONGO_URI não configurado")
 client = pymongo.MongoClient(mongo_uri)
-db = client['ideal_TDV']
+db = client['idealTDV']
 
 # Pasta com planilhas
-planilhas_dir = "uploads"
+planilhas_dir = "TDV"
 
 # Coleção para quantidades ideais
-ideal_collection = db['ideal_TDV']
+ideal_collection = db['idealTDV']
 
 # Listar planilhas .xlsx
 planilhas = glob.glob(os.path.join(planilhas_dir, "*.xlsx"))
@@ -31,7 +31,7 @@ for planilha_path in planilhas:
         continue
 
     try:
-        # Ler planilha
+        # Ler planilha específica 'Planilha1'
         data = pd.read_excel(planilha_path, engine='openpyxl', sheet_name='Planilha1')
         
         # Verificar se a primeira coluna é "OM"
@@ -52,7 +52,7 @@ for planilha_path in planilhas:
                     ideal_data.append({
                         'Unidade': unidade,
                         'Tdv': tdv,
-                        'QuantidadeIdeal': quantidade
+                        'Quantidade': quantidade
                     })
         
         # Verificar se há dados

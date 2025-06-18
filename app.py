@@ -1,7 +1,9 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_login import LoginManager
+from flask_login import LoginManager # type: ignore
 import os
+import logging
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.template_folder = 'public/templates'  # Define explicitamente o diretório de templates

@@ -1,7 +1,7 @@
-from flask_login import UserMixin # type: ignore
-import pymongo # type: ignore
-from bson.binary import Binary # type: ignore
-import bcrypt # type: ignore
+from flask_login import UserMixin  # type: ignore
+import pymongo  # type: ignore
+from bson.binary import Binary  # type: ignore
+import bcrypt  # type: ignore
 import os
 
 # Conectar ao MongoDB (usando a URI do ambiente)
@@ -13,6 +13,7 @@ client = pymongo.MongoClient(mongo_uri)
 # Definir conexões para os bancos
 usuarios_db = client['usuarios']
 veiculos_db = client['veiculos_db']
+idealTDV_db = client['idealTDV']
 
 # Função para acessar os bancos de dados
 def get_db(db_name):
@@ -20,6 +21,8 @@ def get_db(db_name):
         return usuarios_db
     elif db_name == 'veiculos_db':
         return veiculos_db
+    elif db_name == 'idealTDV':
+        return idealTDV_db
     else:
         raise ValueError(f"Banco de dados '{db_name}' não suportado")
 
