@@ -1,12 +1,12 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_login import LoginManager # type: ignore
+from flask_login import LoginManager
 import os
 
 app = Flask(__name__, static_folder='public', static_url_path='')
 app.template_folder = 'public/templates'  # Define explicitamente o diretório de templates
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
-CORS(app, resources={r"/*": {"origins": ["https://analise-veiculos.onrender.com/", "http://localhost:8000"]}})  # Atualize com o domínio do Render
+CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
 
 # Definir constante ELOS_SISTRAN (ajuste com todas as unidades reais)
 ELOS_SISTRAN = ['AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV', 'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III', 'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO', 'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW']
@@ -32,8 +32,7 @@ def register_blueprints():
     from routes.report import report_bp
     from routes.tdv_report import tdv_report_bp
     from routes.tdv_unidade_report import tdv_unidade_report_bp
-    from routes.status_patrimonio_chart import status_patrimonio_chart_bp
-    from routes.disponibilidade_chart import disponibilidade_chart_bp
+    from routes.charts import charts_bp  # Novo Blueprint unificado
 
     app.register_blueprint(login_bp)
     app.register_blueprint(logout_bp)
@@ -43,8 +42,7 @@ def register_blueprints():
     app.register_blueprint(report_bp)
     app.register_blueprint(tdv_report_bp)
     app.register_blueprint(tdv_unidade_report_bp)
-    app.register_blueprint(status_patrimonio_chart_bp)
-    app.register_blueprint(disponibilidade_chart_bp)
+    app.register_blueprint(charts_bp)  # Registrar o novo Blueprint
 
 # Registrar os Blueprints após a inicialização
 register_blueprints()
