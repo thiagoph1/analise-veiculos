@@ -8,6 +8,9 @@ app.template_folder = 'public/templates'  # Define explicitamente o diretório d
 app.secret_key = os.environ.get('SECRET_KEY', 'sua_chave_secreta')  # Fallback para local
 CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http://localhost:8000"]}})  # Atualize com o domínio do Render
 
+#Juntar as adidâncias
+ADIDANCIAS = ['AD-CHINA', 'ADIAE-AFS', 'ADIAE-ARG', 'ADIAE-CHI', 'ADIAE-COL', 'ADIAE-CZE', 'ADIAE-FRA', 'ADIAE-ING', 'ADIAE-PAR', 'ADIAE-PER', 'ADIAE-URU', 'AD-INDIA', 'AD-INDONE', 'AD-SUECIA']
+
 # Definir constante ELOS_SISTRAN (ajuste com todas as unidades reais)
 ELOS_SISTRAN = ['AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV', 'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III', 'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO', 'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW']
 

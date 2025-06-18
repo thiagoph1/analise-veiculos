@@ -99,11 +99,12 @@ export function loadReport() {
                 return;
             }
             if (type === 'tdv_unidade') {
-                reportData = data.report;
-                currentPage = 1;
-                sortColumn = null;
-                sortDirection = 'asc';
-                updatePaginatedTable();
+                // Importação dinâmica assíncrona
+                import('./pagination.js').then(module => {
+                    module.setReportData(data.report); // Usar a função para atualizar
+                }).catch(err => {
+                    console.error('Erro ao importar pagination.js:', err);
+                });
             } else {
                 updateReportTable(type, data.report);
             }

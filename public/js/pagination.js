@@ -5,6 +5,15 @@ export let reportData = [];
 export let sortColumn = null;
 export let sortDirection = 'asc';
 
+// Função para atualizar reportData
+export function setReportData(newData) {
+    reportData = newData; // Reatribuição segura dentro do mesmo módulo
+    currentPage = 1;
+    sortColumn = null;
+    sortDirection = 'asc';
+    updatePaginatedTable();
+}
+
 // Atualizar tabela paginada para TDV/Unidade
 export function updatePaginatedTable() {
     const thead = document.getElementById('reportTableHead');
