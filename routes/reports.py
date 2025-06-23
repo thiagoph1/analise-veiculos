@@ -3,6 +3,8 @@ from flask_login import login_required  # type: ignore
 import pandas as pd
 from routes.auth import get_db  # Importar a função de acesso
 import logging
+
+# Configurar logging
 logging.basicConfig(level=logging.INFO)
 
 reports_bp = Blueprint('reports', __name__)
@@ -83,7 +85,7 @@ def get_tdv_unidade_report(date, tdv=None):
         # Carregar dados ideais do MongoDB
         ideal_data = pd.DataFrame(list(ideal_collection.find({}, {'_id': 0})))
         if ideal_data.empty:
-            logging.warning('Nenhum dado ideal encontrado na coleção ideal_quantities')
+            logging.warning(f'Coleção ideal_quantities em idealTDV está vazia ou não encontrada. Número de documentos: {ideal_collection.count_documents({})}')
             ideal_dict = {}
         else:
             ideal_dict = ideal_data.set_index(['Unidade', 'Tdv'])['QuantidadeIdeal'].to_dict()

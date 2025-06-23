@@ -123,13 +123,14 @@ export function loadReport() {
             } else {
                 updateReportTable(type, data.report);
             }
-            if (type !== 'tdv_unidade') {
+            // Ocultar gráfico para tdv_unidade
+            if (type === 'tdv_unidade') {
+                document.getElementById('chartTitle').classList.add('hidden');
+                document.getElementById('reportChart').classList.add('hidden');
+            } else {
                 updateReportChart(data.chart);
                 document.getElementById('chartTitle').classList.remove('hidden');
                 document.getElementById('reportChart').classList.remove('hidden');
-            } else {
-                document.getElementById('chartTitle').classList.add('hidden');
-                document.getElementById('reportChart').classList.add('hidden');
             }
             document.getElementById('reportTitle').textContent = title;
             document.getElementById('reportContent').classList.remove('hidden');
