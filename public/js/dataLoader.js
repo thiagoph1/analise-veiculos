@@ -123,7 +123,7 @@ export function loadReport() {
             if (type === 'tdv_unidade') {
                 loadIdealQuantitiesFromMongo().then(idealData => {
                     import('./pagination.js').then(module => {
-                        module.setReportData(data.report); // Atualiza reportData
+                        module.setReportData(data.report);
                         if (module.updatePaginatedTableWithIdeal) {
                             module.updatePaginatedTableWithIdeal(data.report, idealData);
                         } else {
@@ -137,14 +137,9 @@ export function loadReport() {
             } else {
                 updateReportTable(type, data.report);
             }
-            if (type === 'tdv_unidade') {
-                document.getElementById('chartTitle').classList.add('hidden');
-                document.getElementById('reportChart').classList.add('hidden');
-            } else {
-                updateReportChart(data.chart);
-                document.getElementById('chartTitle').classList.remove('hidden');
-                document.getElementById('reportChart').classList.remove('hidden');
-            }
+            // Ocultar gráficos para todos os tipos de relatório
+            document.getElementById('chartTitle').classList.add('hidden');
+            document.getElementById('reportChart').classList.add('hidden');
             document.getElementById('reportTitle').textContent = title;
             document.getElementById('reportContent').classList.remove('hidden');
         })
