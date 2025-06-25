@@ -1,6 +1,6 @@
 // Estado interno da paginação
 let currentPage = 1;
-let rowsPerPage = 10;
+let rowsPerPage = 20;
 let reportData = [];
 let sortColumn = null;
 let sortDirection = 'asc';

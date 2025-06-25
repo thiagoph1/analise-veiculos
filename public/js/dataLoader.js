@@ -107,6 +107,7 @@ export function loadReport() {
     } else if (type === 'tdv_unidade') {
         url = tdv === 'all' ? `/report/${date}/tdv_unidade` : `/report/${date}/tdv_unidade/${tdv}`;
         title = `Relatório de TDV/Unidade${tdv !== 'all' ? ` - ${tdv}` : ''}`;
+        console.log('Filtro TDV:', tdv, 'URL:', url); // Log para depuração
     } else {
         alert('Tipo de relatório inválido');
         return;

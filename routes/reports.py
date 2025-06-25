@@ -65,6 +65,7 @@ def get_tdv_unidade_report(date, tdv=None):
         return jsonify({'error': 'Data não encontrada'}), 404
     
     try:
+        logging.info(f'Parâmetro TDV recebido: {tdv}')  # Log para depuração
         # Carregar dados reais
         data = pd.DataFrame(list(collection.find({}, {'_id': 0})))
         required_columns = ['Tdv', 'Unidade']
@@ -74,14 +75,13 @@ def get_tdv_unidade_report(date, tdv=None):
         
         # Filtrar por TDV, se fornecido
         if tdv and tdv != 'all':
-            data = data[data['Tdv'] == tdv]
-            if data.empty:
-                return jsonify({'report': []}), 200
+            data = data[data['Tdv'] == tdv]  # Filtragem explícita
+            logging.info(f'Dados filtrados por TDV {tdv}, linhas restantes: {len(data)}')
+        if data.empty:
+            return jsonify({'report': []}), 200
         
         # Remover linhas com valores nulos ou inválidos antes do agrupamento
         data = data.dropna(subset=required_columns)
-        if data.empty:
-            return jsonify({'report': []}), 200
         
         # Agrupar dados reais
         report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
@@ -93,7 +93,6 @@ def get_tdv_unidade_report(date, tdv=None):
             logging.warning(f'Coleção ideal_quantities em idealTDV está vazia ou não encontrada. Número de documentos: {ideal_collection.count_documents({})}')
             ideal_dict = {}
         else:
-            # Ajustar para lidar com $numberInt
             ideal_data['QuantidadeIdeal'] = ideal_data['QuantidadeIdeal'].apply(lambda x: x.get('$numberInt', 0) if isinstance(x, dict) else x)
             ideal_dict = ideal_data.set_index(['Unidade', 'Tdv'])['QuantidadeIdeal'].to_dict()
 
@@ -103,7 +102,7 @@ def get_tdv_unidade_report(date, tdv=None):
             unidade = item['Unidade']
             tdv = item['Tdv']
             quantidade = item['Quantidade']
-            quantidade_ideal = ideal_dict.get((unidade, tdv), 0)  # 0 se não encontrado
+            quantidade_ideal = ideal_dict.get((unidade, tdv), 0)
             combined_data.append({
                 'Tdv': tdv,
                 'Unidade': unidade,
@@ -122,7 +121,6 @@ def get_ideal_quantities():
     ideal_collection = get_db('idealTDV')['ideal_quantities']
     try:
         ideal_data = list(ideal_collection.find({}, {'_id': 0}))
-        # Ajustar os dados para remover $numberInt e usar valores diretamente
         for item in ideal_data:
             if isinstance(item.get('QuantidadeIdeal'), dict):
                 item['QuantidadeIdeal'] = item['QuantidadeIdeal'].get('$numberInt', 0)
