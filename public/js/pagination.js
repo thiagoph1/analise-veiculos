@@ -1,20 +1,28 @@
-// Estado da paginação
-export let currentPage = 1;
-export let rowsPerPage = 10;
-export let reportData = [];
-export let sortColumn = null;
-export let sortDirection = 'asc';
+// Estado interno da paginação
+let currentPage = 1;
+let rowsPerPage = 10;
+let reportData = [];
+let sortColumn = null;
+let sortDirection = 'asc';
 
 // Função para atualizar reportData
-export function setReportData(newData) {
-    reportData = newData; // Reatribuição segura dentro do mesmo módulo
-    currentPage = 1;
-    sortColumn = null;
-    sortDirection = 'asc';
-    updatePaginatedTable();
+export function setReportData(data) {
+    reportData = data; // Atualiza o estado interno
+    updatePaginatedTable(); // Atualiza a tabela automaticamente
 }
 
-// Atualizar tabela paginada para TDV/Unidade
+export function updatePaginatedTableWithIdeal(reportDataInput, idealQuantities) {
+    reportData = reportDataInput.map(item => {
+        const ideal = idealQuantities.find(i => i.Unidade === item.Unidade && i.Tdv === item.Tdv);
+        return {
+            ...item,
+            QuantidadeIdeal: ideal ? ideal.QuantidadeIdeal : 0
+        };
+    });
+    updatePaginatedTable(); // Atualiza a tabela
+}
+
+// Função principal para atualizar a tabela paginada
 export function updatePaginatedTable() {
     const thead = document.getElementById('reportTableHead');
     const tbody = document.getElementById('reportTableBody');
@@ -23,12 +31,13 @@ export function updatePaginatedTable() {
             <th class="p-1 text-left cursor-pointer" onclick="sortTable('Tdv')">TDV</th>
             <th class="p-1 text-left cursor-pointer" onclick="sortTable('Unidade')">Unidade</th>
             <th class="p-1 text-left cursor-pointer" onclick="sortTable('Quantidade')">Quantidade</th>
+            <th class="p-1 text-left cursor-pointer" onclick="sortTable('QuantidadeIdeal')">Ideal</th>
         </tr>
     `;
     tbody.innerHTML = '';
 
     if (!reportData || reportData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="p-1">Nenhum dado disponível</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="p-1">Nenhum dado disponível</td></tr>';
         document.getElementById('pagination').classList.add('hidden');
         return;
     }
@@ -38,7 +47,7 @@ export function updatePaginatedTable() {
         sortedData.sort((a, b) => {
             let valA = a[sortColumn];
             let valB = b[sortColumn];
-            if (sortColumn === 'Quantidade') {
+            if (sortColumn === 'Quantidade' || sortColumn === 'QuantidadeIdeal') {
                 valA = Number(valA);
                 valB = Number(valB);
             }
@@ -55,9 +64,10 @@ export function updatePaginatedTable() {
     paginatedData.forEach(item => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="p-1">${item.Tdv}</td>
-            <td class="p-1">${item.Unidade}</td>
-            <td class="p-1">${item.Quantidade}</td>
+            <td class="p-1">${item.Tdv || ''}</td>
+            <td class="p-1">${item.Unidade || ''}</td>
+            <td class="p-1">${item.Quantidade || 0}</td>
+            <td class="p-1">${item.QuantidadeIdeal || 0}</td>
         `;
         tbody.appendChild(row);
     });

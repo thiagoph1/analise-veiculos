@@ -18,7 +18,7 @@ db = client['idealTDV']
 planilhas_dir = "TDV"
 
 # Coleção para quantidades ideais
-ideal_collection = db['idealTDV']
+ideal_collection = db['ideal_quantities']
 
 # Listar planilhas .xlsx
 planilhas = glob.glob(os.path.join(planilhas_dir, "*.xlsx"))
@@ -31,9 +31,11 @@ for planilha_path in planilhas:
         continue
 
     try:
+        logging.info(f"Processando arquivo: {planilha_path}")
         # Ler planilha específica 'Planilha1'
         data = pd.read_excel(planilha_path, engine='openpyxl', sheet_name='Planilha1')
         
+        logging.info(f"Colunas encontradas: {data.columns.tolist()}")
         # Verificar se a primeira coluna é "OM"
         if data.columns[0] != 'OM':
             logging.error(f"Coluna 'OM' ausente em {filename}")
@@ -52,7 +54,7 @@ for planilha_path in planilhas:
                     ideal_data.append({
                         'Unidade': unidade,
                         'Tdv': tdv,
-                        'Quantidade': quantidade
+                        'QuantidadeIdeal': quantidade  # Usar QuantidadeIdeal consistentemente
                     })
         
         # Verificar se há dados

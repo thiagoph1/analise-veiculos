@@ -68,6 +68,16 @@ export async function loadIdealQuantitiesFromMongo() {
     }
 }
 
+export function showSection(sectionId) {
+    document.querySelectorAll('.section').forEach(section => {
+        section.classList.add('hidden');
+    });
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.remove('hidden');
+    }
+}
+
 export function loadReport() {
     const type = document.getElementById('reportType').value;
     const date = document.getElementById('dateSelect').value;
@@ -113,9 +123,13 @@ export function loadReport() {
             if (type === 'tdv_unidade') {
                 loadIdealQuantitiesFromMongo().then(idealData => {
                     import('./pagination.js').then(module => {
-                        module.setReportData(data.report);
-                        module.idealQuantities = idealData; // Usa dados do MongoDB
-                        module.updatePaginatedTable();
+                        module.setReportData(data.report); // Atualiza reportData
+                        if (module.updatePaginatedTableWithIdeal) {
+                            module.updatePaginatedTableWithIdeal(data.report, idealData);
+                        } else {
+                            console.warn('Método updatePaginatedTableWithIdeal não encontrado em pagination.js');
+                            module.updatePaginatedTable();
+                        }
                     }).catch(err => {
                         console.error('Erro ao importar pagination.js:', err);
                     });
@@ -123,7 +137,6 @@ export function loadReport() {
             } else {
                 updateReportTable(type, data.report);
             }
-            // Ocultar gráfico para tdv_unidade
             if (type === 'tdv_unidade') {
                 document.getElementById('chartTitle').classList.add('hidden');
                 document.getElementById('reportChart').classList.add('hidden');

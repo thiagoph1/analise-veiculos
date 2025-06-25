@@ -78,6 +78,11 @@ def get_tdv_unidade_report(date, tdv=None):
             if data.empty:
                 return jsonify({'report': []}), 200
         
+        # Remover linhas com valores nulos ou inválidos antes do agrupamento
+        data = data.dropna(subset=required_columns)
+        if data.empty:
+            return jsonify({'report': []}), 200
+        
         # Agrupar dados reais
         report = data.groupby(['Tdv', 'Unidade']).size().reset_index(name='Quantidade')
         real_data = report.to_dict('records')
@@ -88,6 +93,8 @@ def get_tdv_unidade_report(date, tdv=None):
             logging.warning(f'Coleção ideal_quantities em idealTDV está vazia ou não encontrada. Número de documentos: {ideal_collection.count_documents({})}')
             ideal_dict = {}
         else:
+            # Ajustar para lidar com $numberInt
+            ideal_data['QuantidadeIdeal'] = ideal_data['QuantidadeIdeal'].apply(lambda x: x.get('$numberInt', 0) if isinstance(x, dict) else x)
             ideal_dict = ideal_data.set_index(['Unidade', 'Tdv'])['QuantidadeIdeal'].to_dict()
 
         # Combinar dados reais com ideais
@@ -106,4 +113,20 @@ def get_tdv_unidade_report(date, tdv=None):
 
         return jsonify({'report': combined_data})
     except Exception as e:
+        logging.error(f"Erro ao processar get_tdv_unidade_report: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@reports_bp.route('/api/ideal-quantities', methods=['GET'])
+@login_required
+def get_ideal_quantities():
+    ideal_collection = get_db('idealTDV')['ideal_quantities']
+    try:
+        ideal_data = list(ideal_collection.find({}, {'_id': 0}))
+        # Ajustar os dados para remover $numberInt e usar valores diretamente
+        for item in ideal_data:
+            if isinstance(item.get('QuantidadeIdeal'), dict):
+                item['QuantidadeIdeal'] = item['QuantidadeIdeal'].get('$numberInt', 0)
+        return jsonify(ideal_data), 200
+    except Exception as e:
+        logging.error(f"Erro ao processar get_ideal_quantities: {str(e)}")
         return jsonify({'error': str(e)}), 500
