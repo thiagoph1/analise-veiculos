@@ -1,3 +1,14 @@
+// Usar o Chart.js já carregado globalmente
+const Chart = window.Chart;
+
+// Verificar se o plugin datalabels está disponível
+const ChartDataLabels = window['chartjs-plugin-datalabels'];
+if (!ChartDataLabels) {
+    console.error('Plugin chartjs-plugin-datalabels não encontrado. Certifique-se de que foi carregado.');
+} else {
+    Chart.register(ChartDataLabels);
+}
+
 // Atualizar gráfico de relatório (Marcas, TDV)
 let reportChartInstance = null;
 export function updateReportChart(chartData) {
@@ -100,6 +111,7 @@ export function updateDisponibilidadeChart(chartData) {
 
     const totalDisponivel = chartData.datasets[0].data.reduce((sum, val) => sum + val, 0);
     const totalIndisponivel = chartData.datasets[1].data.reduce((sum, val) => sum + val, 0);
+    const totals = chartData.datasets[0].data.map((val, index) => val + (chartData.datasets[1].data[index] || 0));
 
     chartInstance = new Chart(ctx, {
         type: 'bar',
@@ -136,8 +148,21 @@ export function updateDisponibilidadeChart(chartData) {
                     position: 'bottom',
                     labels: {
                         font: {
-                            size: 12
+                            size: 12,
+                            color: 'black' // Quantidade em preto nos labels
                         }
+                    }
+                },
+                datalabels: {
+                    anchor: 'end',
+                    align: 'top',
+                    formatter: (value, context) => {
+                        const total = totals[context.dataIndex];
+                        return total > 0 ? total.toString() : ''; // Total geral acima da barra
+                    },
+                    color: 'black',
+                    font: {
+                        weight: 'bold'
                     }
                 }
             }
