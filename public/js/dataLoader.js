@@ -34,6 +34,7 @@ export function loadDates(selectId) {
 
 export function loadTdvs(date) {
     const tdvFilter = document.getElementById('tdvFilter');
+    const selectedTdv = tdvFilter.value; // Armazena o TDV selecionado antes da atualização
     tdvFilter.innerHTML = '<option value="all">Todos os TDVs</option>';
     if (!date) return;
     
@@ -44,11 +45,17 @@ export function loadTdvs(date) {
                 console.error('Erro ao carregar TDVs:', data.error);
                 return;
             }
+            console.log('TDVs recebidos:', data.tdvs); // Depuração
             data.tdvs.forEach(tdv => {
                 const option = document.createElement('option');
                 option.value = tdv;
+                option.textContent = tdv; // Garante que o texto seja o mesmo que o valor
                 tdvFilter.appendChild(option);
             });
+            // Restaura o valor selecionado, se ainda existir
+            if (selectedTdv && data.tdvs.includes(selectedTdv)) {
+                tdvFilter.value = selectedTdv;
+            }
         })
         .catch(error => {
             console.error('Erro ao carregar TDVs:', error);
