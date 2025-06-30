@@ -154,16 +154,27 @@ export function updateDisponibilidadeChart(chartData) {
                     }
                 },
                 datalabels: {
-                    anchor: 'end',
-                    align: 'top',
-                    formatter: (value, context) => {
+                    anchor: function(context) {
+                        const datasetIndex = context.datasetIndex;
+                        return datasetIndex === 0 ? 'center' : 'center'; // Centralizar dentro das barras
+                    },
+                    align: function(context) {
+                        const datasetIndex = context.datasetIndex;
+                        return datasetIndex === 0 ? 'center' : 'center'; // Centralizar dentro das barras
+                    },
+                    formatter: function(value, context) {
+                        const datasetIndex = context.datasetIndex;
+                        if (datasetIndex === 0 || datasetIndex === 1) {
+                            return value; // Mostrar o valor individual dentro da barra
+                        }
                         const total = totals[context.dataIndex];
-                        return total > 0 ? total.toString() : ''; // Total geral acima da barra
+                        return total > 0 ? total.toString() : ''; // Total geral acima (opcional, ajustar posição)
                     },
                     color: 'black',
                     font: {
                         weight: 'bold'
-                    }
+                    },
+                    clamp: true // Garante que os labels fiquem dentro das barras
                 }
             }
         }
