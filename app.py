@@ -14,7 +14,7 @@ CORS(app, resources={r"/*": {"origins": ["https://seu-dominio-render.com", "http
 ADIDANCIAS = ['AD-CHINA', 'ADIAE-AFS', 'ADIAE-ARG', 'ADIAE-CHI', 'ADIAE-COL', 'ADIAE-CZE', 'ADIAE-FRA', 'ADIAE-ING', 'ADIAE-PAR', 'ADIAE-PER', 'ADIAE-URU', 'AD-INDIA', 'AD-INDONE', 'AD-SUECIA']
 
 # Definir constante ELOS_SISTRAN (ajuste com todas as unidades reais)
-ELOS_SISTRAN = ['AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV', 'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III', 'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO', 'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME', 'CABE', 'CABW']
+ELOS_SISTRAN = ['AFA', 'BAAN', 'BABV', 'BACG', 'BAFL', 'BAFZ', 'BANT', 'BAPV', 'BASC', 'BASM', 'BASV', 'CISCEA', 'CLA', 'COMARA', 'CPBV-CC', 'CRCEA-SE', 'DACTA I', 'DACTA II', 'DACTA III', 'DACTA IV', 'DECEA', 'EEAR', 'EPCAR', 'GABAER', 'GAP-AF', 'GAP-BE', 'GAP-BR', 'GAP-CO', 'GAP-DF', 'GAP-GL', 'GAP-LS', 'GAP-MN', 'GAP-RF', 'GAP-RJ', 'GAP-SJ', 'GAP-SP', 'ICEA', 'PAME']
 
 # Configuração do Flask-Login
 login_manager = LoginManager()
