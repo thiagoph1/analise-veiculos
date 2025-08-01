@@ -34,7 +34,7 @@ def get_disponibilidade_chart(date, unit_filter=None):
 
         # Definir categorias
         disponiveis = ['Em Uso', 'Em Trânsito', 'Estoque Interno']
-        indisponiveis = ['Em Reparo', 'A Reparar', 'Inativo']
+        indisponiveis = ['Em Reparo', 'A Reparar']
 
         # Criar coluna para categorizar status
         data['Categoria'] = data['Status Patrimonio'].apply(
